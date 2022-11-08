@@ -11,3 +11,8 @@ type ReserveModel struct {
 	OrderID   string  `json:"order_id"`
 	Cost      float64 `json:"cost"`
 }
+
+type ReportRow struct {
+	ServiceName string `json:"service_name"`
+	Cost        string `json:"cost"`
+}

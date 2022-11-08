@@ -62,4 +62,11 @@ func main() {
 	if err != nil {
 		logger.Errorf("%v", err)
 	}
+
+	report, err := br.GetReport(context.TODO(), 2022, 11)
+	if err != nil {
+		logger.Errorf("%v", err)
+	} else {
+		logger.Infof("report: %v", report)
+	}
 }
