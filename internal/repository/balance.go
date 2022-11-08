@@ -15,6 +15,7 @@ import (
 
 var (
 	BalanceNotFound = errors.New("user's balance not found")
+	NotEnoughMoney  = errors.New("not enough money on balance")
 )
 
 type BalanceRepository struct {
@@ -33,6 +34,9 @@ func PgxErrorLog(err error, l *logging.Logger) error {
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) {
 		pgErr = err.(*pgconn.PgError)
+		if pgErr.Code == "23514" && pgErr.ConstraintName == "balance_balance_check" {
+			return NotEnoughMoney
+		}
 		newErr := fmt.Errorf("Code: %s, Message: %s, Where: %s, Detail: %s, SQLState: %s", pgErr.Code, pgErr.Message, pgErr.Where, pgErr.Detail, pgErr.SQLState())
 		l.Error(newErr)
 		return newErr
@@ -94,6 +98,42 @@ func (r *BalanceRepository) CreateReplenishment(ctx context.Context, b model.Bal
 	}
 
 	return nil
+}
+
+func (r *BalanceRepository) CreateReservation(ctx context.Context, rm model.ReserveModel) error {
+	q := `
+		INSERT INTO reservation (user_id, order_id, service_id, cost)
+		VALUES ($1,$2,$3,$4)
+		`
+	r.logger.Trace(fmt.Sprintf("SQL Query: %s", utils.FormatQuery(q)))
+
+	_, err := r.client.Exec(ctx, q, rm.UserID, rm.OrderID, rm.ServiceID, rm.Cost)
+	if err != nil {
+		err = PgxErrorLog(err, r.logger)
+		return err
+	}
+
+	return nil
+}
+
+func (r *BalanceRepository) ReduceBalance(ctx context.Context, rm model.ReserveModel) (float64, error) {
+	q := `
+		UPDATE balance
+    	SET balance= balance - $1
+   		WHERE user_id = $2
+    	RETURNING balance
+		`
+	r.logger.Trace(fmt.Sprintf("SQL Query: %s", utils.FormatQuery(q)))
+
+	var newBalance float64
+
+	if err := r.client.QueryRow(ctx, q, rm.Cost, rm.UserID).Scan(&newBalance); err != nil {
+		err = PgxErrorLog(err, r.logger)
+
+		return 0, err
+	}
+
+	return newBalance, nil
 }
 
 func (r *BalanceRepository) ReplenishUserBalance(ctx context.Context, b model.BalanceModel) (bm *model.BalanceModel, err error) {
@@ -159,4 +199,47 @@ func (r *BalanceRepository) ReplenishUserBalance(ctx context.Context, b model.Ba
 
 	b.Amount = newBalance
 	return &b, nil
+}
+
+func (r *BalanceRepository) ReserveMoney(ctx context.Context, rm model.ReserveModel) (*model.BalanceModel, error) {
+	conn, err := r.client.Acquire(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Release()
+
+	tx, err := conn.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.Serializable})
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		if err != nil {
+			errTx := tx.Rollback(ctx)
+			if errTx != nil {
+				r.logger.Errorf("transaction rollback failed")
+			}
+		} else {
+			errTx := tx.Commit(ctx)
+			if errTx != nil {
+				r.logger.Errorf("transaction commit failed")
+			}
+		}
+	}()
+
+	newBalance, err := r.ReduceBalance(ctx, rm)
+	if err != nil {
+		return nil, err
+	}
+
+	err = r.CreateReservation(ctx, rm)
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.BalanceModel{
+		UserID: rm.UserID,
+		Amount: newBalance,
+	}, nil
 }
