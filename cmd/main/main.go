@@ -34,7 +34,7 @@ func main() {
 
 	balance, err := br.ReplenishUserBalance(context.TODO(), model.BalanceModel{
 		UserID: "7a13445c-d6df-4111-abc0-abb12f610069",
-		Amount: 12,
+		Amount: 100,
 	})
 
 	if err != nil {
@@ -43,7 +43,7 @@ func main() {
 		logger.Infof("new balance: %f", balance.Amount)
 	}
 
-	balance, err = br.ReserveMoney(context.TODO(), model.ReserveModel{
+	err = br.ReserveMoney(context.TODO(), model.ReserveModel{
 		UserID:    "7a13445c-d6df-4111-abc0-abb12f610069",
 		ServiceID: "b55e4e01-5152-4cb0-95f2-ee27d5d2e9cd",
 		OrderID:   "b55e4e01-5152-4cb0-95f2-ee27d5d2e9c1",
@@ -51,7 +51,15 @@ func main() {
 	})
 	if err != nil {
 		logger.Errorf("%v", err)
-	} else {
-		logger.Infof("new balance: %+v", balance)
+	}
+
+	err = br.CommitReservation(context.TODO(), model.ReserveModel{
+		UserID:    "7a13445c-d6df-4111-abc0-abb12f610069",
+		ServiceID: "b55e4e01-5152-4cb0-95f2-ee27d5d2e9cd",
+		OrderID:   "b55e4e01-5152-4cb0-95f2-ee27d5d2e9c1",
+		Cost:      100,
+	}, repository.Cancel)
+	if err != nil {
+		logger.Errorf("%v", err)
 	}
 }

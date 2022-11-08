@@ -57,3 +57,10 @@ WHERE commit_reservation.status = 'confirm'
   AND EXTRACT(YEAR FROM commit_reservation.created_at) = 2022
   AND EXTRACT(MONTH FROM commit_reservation.created_at) = 11
 GROUP BY service.name;
+
+DELETE
+FROM reservation
+WHERE user_id = ''
+  AND order_id = ''
+  AND service_id = ''
+  AND cost = 0

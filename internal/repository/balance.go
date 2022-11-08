@@ -13,9 +13,17 @@ import (
 	"user_balance_service/pkg/utils"
 )
 
+type Status string
+
+const (
+	Confirm Status = "confirm"
+	Cancel         = "cancel"
+)
+
 var (
-	BalanceNotFound = errors.New("user's balance not found")
-	NotEnoughMoney  = errors.New("not enough money on balance")
+	BalanceNotFound     = errors.New("user's balance not found")
+	NotEnoughMoney      = errors.New("not enough money on balance")
+	ReservationNotFound = errors.New("reservation not found")
 )
 
 type BalanceRepository struct {
@@ -68,7 +76,7 @@ func (r *BalanceRepository) GetBalanceByUserID(ctx context.Context, id string) (
 	return balance, nil
 }
 
-func (r *BalanceRepository) CreateBalance(ctx context.Context, id string) error {
+func (r *BalanceRepository) createBalance(ctx context.Context, id string) error {
 	q := `
 		INSERT INTO balance (user_id)
 		VALUES ($1)
@@ -84,7 +92,7 @@ func (r *BalanceRepository) CreateBalance(ctx context.Context, id string) error 
 	return nil
 }
 
-func (r *BalanceRepository) CreateReplenishment(ctx context.Context, b model.BalanceModel) error {
+func (r *BalanceRepository) createReplenishment(ctx context.Context, b model.BalanceModel) error {
 	q := `
 		INSERT INTO replenishment (user_id, amount) 
 		VALUES ($1, $2)
@@ -100,10 +108,10 @@ func (r *BalanceRepository) CreateReplenishment(ctx context.Context, b model.Bal
 	return nil
 }
 
-func (r *BalanceRepository) CreateReservation(ctx context.Context, rm model.ReserveModel) error {
+func (r *BalanceRepository) createReservation(ctx context.Context, rm model.ReserveModel) error {
 	q := `
 		INSERT INTO reservation (user_id, order_id, service_id, cost)
-		VALUES ($1,$2,$3,$4)
+		VALUES ($1, $2, $3, $4)
 		`
 	r.logger.Trace(fmt.Sprintf("SQL Query: %s", utils.FormatQuery(q)))
 
@@ -116,7 +124,7 @@ func (r *BalanceRepository) CreateReservation(ctx context.Context, rm model.Rese
 	return nil
 }
 
-func (r *BalanceRepository) ReduceBalance(ctx context.Context, rm model.ReserveModel) (float64, error) {
+func (r *BalanceRepository) reduceBalance(ctx context.Context, rm model.ReserveModel) (float64, error) {
 	q := `
 		UPDATE balance
     	SET balance= balance - $1
@@ -134,6 +142,48 @@ func (r *BalanceRepository) ReduceBalance(ctx context.Context, rm model.ReserveM
 	}
 
 	return newBalance, nil
+}
+
+func (r *BalanceRepository) deleteReservation(ctx context.Context, rm model.ReserveModel) error {
+	q := `
+		DELETE
+		FROM reservation
+		WHERE user_id = $1
+  		AND order_id = $2
+  		AND service_id = $3
+  		AND cost = $4
+		`
+
+	r.logger.Trace(fmt.Sprintf("SQL Query: %s", utils.FormatQuery(q)))
+
+	commandTag, err := r.client.Exec(ctx, q, rm.UserID, rm.OrderID, rm.ServiceID, rm.Cost)
+	if err != nil {
+		err = PgxErrorLog(err, r.logger)
+		return err
+	}
+
+	if commandTag.RowsAffected() != 1 {
+		return ReservationNotFound
+	}
+
+	return nil
+}
+
+func (r *BalanceRepository) createCommitReservation(ctx context.Context, rm model.ReserveModel, status Status) error {
+	q := `
+		INSERT INTO commit_reservation (user_id, order_id, service_id, cost, status)
+		VALUES ($1, $2, $3, $4, $5)
+		`
+
+	r.logger.Trace(fmt.Sprintf("SQL Query: %s", utils.FormatQuery(q)))
+
+	_, err := r.client.Exec(ctx, q, rm.UserID, rm.OrderID, rm.ServiceID, rm.Cost, status)
+	if err != nil {
+		err = PgxErrorLog(err, r.logger)
+		return err
+	}
+
+	return nil
 }
 
 func (r *BalanceRepository) ReplenishUserBalance(ctx context.Context, b model.BalanceModel) (bm *model.BalanceModel, err error) {
@@ -166,7 +216,7 @@ func (r *BalanceRepository) ReplenishUserBalance(ctx context.Context, b model.Ba
 	_, err = r.GetBalanceByUserID(ctx, b.UserID)
 	if err != nil {
 		if errors.Is(err, BalanceNotFound) {
-			err = r.CreateBalance(ctx, b.UserID)
+			err = r.createBalance(ctx, b.UserID)
 			if err != nil {
 				return nil, err
 			}
@@ -192,7 +242,7 @@ func (r *BalanceRepository) ReplenishUserBalance(ctx context.Context, b model.Ba
 	}
 
 	// записываем пополнение баланса в таблицу replenishment для отображения истории
-	err = r.CreateReplenishment(ctx, b)
+	err = r.createReplenishment(ctx, b)
 	if err != nil {
 		return nil, err
 	}
@@ -201,17 +251,17 @@ func (r *BalanceRepository) ReplenishUserBalance(ctx context.Context, b model.Ba
 	return &b, nil
 }
 
-func (r *BalanceRepository) ReserveMoney(ctx context.Context, rm model.ReserveModel) (*model.BalanceModel, error) {
+func (r *BalanceRepository) ReserveMoney(ctx context.Context, rm model.ReserveModel) error {
 	conn, err := r.client.Acquire(ctx)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer conn.Release()
 
 	tx, err := conn.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.Serializable})
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	defer func() {
@@ -228,18 +278,55 @@ func (r *BalanceRepository) ReserveMoney(ctx context.Context, rm model.ReserveMo
 		}
 	}()
 
-	newBalance, err := r.ReduceBalance(ctx, rm)
+	_, err = r.reduceBalance(ctx, rm)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	err = r.CreateReservation(ctx, rm)
+	err = r.createReservation(ctx, rm)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return &model.BalanceModel{
-		UserID: rm.UserID,
-		Amount: newBalance,
-	}, nil
+	return nil
+}
+
+func (r *BalanceRepository) CommitReservation(ctx context.Context, rm model.ReserveModel, status Status) error {
+	conn, err := r.client.Acquire(ctx)
+	if err != nil {
+		return err
+	}
+	defer conn.Release()
+
+	tx, err := conn.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.Serializable})
+
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		if err != nil {
+			errTx := tx.Rollback(ctx)
+			if errTx != nil {
+				r.logger.Errorf("transaction rollback failed")
+			}
+		} else {
+			errTx := tx.Commit(ctx)
+			if errTx != nil {
+				r.logger.Errorf("transaction commit failed")
+			}
+		}
+	}()
+
+	err = r.deleteReservation(ctx, rm)
+	if err != nil {
+		return err
+	}
+
+	err = r.createCommitReservation(ctx, rm, status)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
