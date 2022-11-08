@@ -46,9 +46,9 @@ CREATE TABLE commit_reservation
 CREATE TABLE replenishment
 (
     replenishment_id UUID PRIMARY KEY        DEFAULT gen_random_uuid(),
-    user_id    UUID           NOT NULL,
-    amount     decimal(18, 2) NOT NULL CHECK ( amount > 0 ),
-    created_at TIMESTAMP      NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
+    user_id          UUID           NOT NULL,
+    amount           decimal(18, 2) NOT NULL CHECK ( amount > 0 ),
+    created_at       TIMESTAMP      NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
 
     CONSTRAINT fk_user
         FOREIGN KEY (user_id)
@@ -59,27 +59,29 @@ CREATE TABLE replenishment
 CREATE VIEW balance_history AS
 SELECT reservation.user_id,
        reservation.order_id,
-       reservation.service_id,
+       service.name           as service_name,
        reservation.created_at as create_date,
        reservation.cost       as amount,
        'reserve'              as transaction_type
 FROM reservation
+         JOIN service USING (service_id)
 
 UNION
 
 SELECT commit_reservation.user_id,
        commit_reservation.order_id,
-       commit_reservation.service_id,
+       service.name                           as service_name,
        commit_reservation.created_at          as create_date,
        commit_reservation.cost                as amount,
        commit_reservation.status::varchar(32) as transaction_type
 FROM commit_reservation
+         JOIN service USING (service_id)
 
 UNION
 
 SELECT replenishment.user_id,
        NULL                     as order_id,
-       NULL                     as service_id,
+       ''                       as service_name,
        replenishment.created_at as create_date,
        replenishment.amount,
        'replenish'              as transaction_type
