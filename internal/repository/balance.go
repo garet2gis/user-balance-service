@@ -124,10 +124,10 @@ func (r *BalanceRepository) createReservation(ctx context.Context, rm model.Rese
 	return nil
 }
 
-func (r *BalanceRepository) reduceBalance(ctx context.Context, rm model.ReserveModel) (float64, error) {
+func (r *BalanceRepository) changeBalance(ctx context.Context, userID string, diff float64) (float64, error) {
 	q := `
 		UPDATE balance
-    	SET balance= balance - $1
+    	SET balance= balance + $1
    		WHERE user_id = $2
     	RETURNING balance
 		`
@@ -135,7 +135,7 @@ func (r *BalanceRepository) reduceBalance(ctx context.Context, rm model.ReserveM
 
 	var newBalance float64
 
-	if err := r.client.QueryRow(ctx, q, rm.Cost, rm.UserID).Scan(&newBalance); err != nil {
+	if err := r.client.QueryRow(ctx, q, diff, userID).Scan(&newBalance); err != nil {
 		err = PgxErrorLog(err, r.logger)
 
 		return 0, err
@@ -225,19 +225,8 @@ func (r *BalanceRepository) ReplenishUserBalance(ctx context.Context, b model.Ba
 		}
 	}
 
-	q := `
-		UPDATE balance
-    	SET balance= $1 + balance
-   		WHERE user_id = $2
-    	RETURNING balance
-	`
-
-	r.logger.Trace(fmt.Sprintf("SQL Query: %s", utils.FormatQuery(q)))
-
-	var newBalance float64
-
-	if err = r.client.QueryRow(ctx, q, b.Amount, b.UserID).Scan(&newBalance); err != nil {
-		err = PgxErrorLog(err, r.logger)
+	newBalance, err := r.changeBalance(ctx, b.UserID, b.Amount)
+	if err != nil {
 		return nil, err
 	}
 
@@ -278,7 +267,7 @@ func (r *BalanceRepository) ReserveMoney(ctx context.Context, rm model.ReserveMo
 		}
 	}()
 
-	_, err = r.reduceBalance(ctx, rm)
+	_, err = r.changeBalance(ctx, rm.UserID, -rm.Cost)
 	if err != nil {
 		return err
 	}
@@ -326,6 +315,13 @@ func (r *BalanceRepository) CommitReservation(ctx context.Context, rm model.Rese
 	err = r.createCommitReservation(ctx, rm, status)
 	if err != nil {
 		return err
+	}
+
+	if status == Cancel {
+		_, err = r.changeBalance(ctx, rm.UserID, rm.Cost)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
