@@ -11,16 +11,3 @@ type ReserveModel struct {
 	OrderID   string  `json:"order_id"`
 	Cost      float64 `json:"cost"`
 }
-
-type ReportRow struct {
-	ServiceName string `json:"service_name"`
-	Cost        string `json:"cost"`
-}
-
-type HistoryRow struct {
-	OrderID         string `json:"order_id"`
-	ServiceName     string `json:"service_name"`
-	CreateAt        string `json:"create_at"`
-	Amount          int    `json:"amount"`
-	TransactionType string `json:"transaction_type"`
-}
