@@ -13,6 +13,10 @@ import (
 	"user_balance_service/pkg/utils"
 )
 
+var (
+	BalanceNotFound = errors.New("user's balance not found")
+)
+
 type BalanceRepository struct {
 	client postgresql.Client
 	logger *logging.Logger
@@ -50,7 +54,7 @@ func (r *BalanceRepository) GetBalanceByUserID(ctx context.Context, id string) (
 
 	if err := r.client.QueryRow(ctx, q, id).Scan(&balance); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return 0, errors.New("user's balance not found")
+			return 0, BalanceNotFound
 		}
 
 		err = PgxErrorLog(err, r.logger)
@@ -58,6 +62,38 @@ func (r *BalanceRepository) GetBalanceByUserID(ctx context.Context, id string) (
 	}
 
 	return balance, nil
+}
+
+func (r *BalanceRepository) CreateBalance(ctx context.Context, id string) error {
+	q := `
+		INSERT INTO balance (user_id)
+		VALUES ($1)
+	`
+
+	r.logger.Trace(fmt.Sprintf("SQL Query: %s", utils.FormatQuery(q)))
+
+	_, err := r.client.Exec(ctx, q, id)
+	if err != nil {
+		err = PgxErrorLog(err, r.logger)
+		return err
+	}
+	return nil
+}
+
+func (r *BalanceRepository) CreateReplenishment(ctx context.Context, b model.BalanceModel) error {
+	q := `
+		INSERT INTO replenishment (user_id, amount) 
+		VALUES ($1, $2)
+		`
+	r.logger.Trace(fmt.Sprintf("SQL Query: %s", utils.FormatQuery(q)))
+
+	_, err := r.client.Exec(ctx, q, b.UserID, b.Amount)
+	if err != nil {
+		err = PgxErrorLog(err, r.logger)
+		return err
+	}
+
+	return nil
 }
 
 func (r *BalanceRepository) ReplenishUserBalance(ctx context.Context, b model.BalanceModel) (bm *model.BalanceModel, err error) {
@@ -87,20 +123,23 @@ func (r *BalanceRepository) ReplenishUserBalance(ctx context.Context, b model.Ba
 		}
 	}()
 
-	prevBalance, err := r.GetBalanceByUserID(ctx, b.UserID)
+	_, err = r.GetBalanceByUserID(ctx, b.UserID)
 	if err != nil {
-		return nil, err
-	}
-
-	if prevBalance-b.Amount < 0 {
-		return nil, errors.New("failed to update balance, balance must be positive")
+		if errors.Is(err, BalanceNotFound) {
+			err = r.CreateBalance(ctx, b.UserID)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
 	}
 
 	q := `
 		UPDATE balance
     	SET balance= $1 + balance
    		WHERE user_id = $2
-    	RETURNING balance;
+    	RETURNING balance
 	`
 
 	r.logger.Trace(fmt.Sprintf("SQL Query: %s", utils.FormatQuery(q)))
@@ -112,16 +151,9 @@ func (r *BalanceRepository) ReplenishUserBalance(ctx context.Context, b model.Ba
 		return nil, err
 	}
 
-	// записываем пополнение баланса для отображения истории
-	q = `
-		INSERT INTO replenishment (user_id, amount) 
-		VALUES ($1, $2)
-		`
-	r.logger.Trace(fmt.Sprintf("SQL Query: %s", utils.FormatQuery(q)))
-
-	_, err = r.client.Exec(ctx, q, b.UserID, b.Amount)
+	// записываем пополнение баланса в таблицу replenishment для отображения истории
+	err = r.CreateReplenishment(ctx, b)
 	if err != nil {
-		err = PgxErrorLog(err, r.logger)
 		return nil, err
 	}
 

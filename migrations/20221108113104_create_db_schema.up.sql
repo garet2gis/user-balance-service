@@ -1,7 +1,7 @@
 CREATE TABLE balance
 (
     user_id UUID PRIMARY KEY,
-    balance decimal(18, 2) NOT NULL CHECK ( balance > 0 )
+    balance decimal(18, 2) NOT NULL CHECK ( balance >= 0 ) DEFAULT 0
 );
 
 CREATE TABLE service
