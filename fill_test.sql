@@ -1,5 +1,5 @@
 INSERT INTO balance (user_id, balance)
-VALUES ('7a13445c-d6df-4111-abc0-abb12f610069', 500),
+VALUES ('7a13445c-d6df-4111-abc0-abb12f610069', 500.34),
        ('5bb0d661-cf53-419a-93ec-a9d8938b2d54', 200),
        ('7a270640-c4eb-414d-86e1-b8ff0c6faf6e', 300),
        ('028abfaa-f28c-43f2-8fec-97010fda1080', 100),

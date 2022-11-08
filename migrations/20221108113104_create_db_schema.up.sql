@@ -1,7 +1,7 @@
 CREATE TABLE balance
 (
     user_id UUID PRIMARY KEY,
-    balance numeric NOT NULL CHECK ( balance > 0 )
+    balance decimal(18, 2) NOT NULL CHECK ( balance > 0 )
 );
 
 CREATE TABLE service
@@ -12,12 +12,12 @@ CREATE TABLE service
 
 CREATE TABLE reservation
 (
-    reservation_id UUID PRIMARY KEY   DEFAULT gen_random_uuid(),
-    user_id        UUID      NOT NULL,
-    order_id       UUID      NOT NULL,
-    service_id     UUID      NOT NULL,
-    cost           numeric   NOT NULL CHECK ( cost > 0 ),
-    created_at     TIMESTAMP NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
+    reservation_id UUID PRIMARY KEY        DEFAULT gen_random_uuid(),
+    user_id        UUID           NOT NULL,
+    order_id       UUID           NOT NULL,
+    service_id     UUID           NOT NULL,
+    cost           decimal(18, 2) NOT NULL CHECK ( cost > 0 ),
+    created_at     TIMESTAMP      NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
 
     CONSTRAINT uq_reservation UNIQUE (user_id, order_id, service_id, cost),
 
@@ -37,7 +37,7 @@ CREATE TABLE commit_reservation
     user_id               UUID               NOT NULL,
     order_id              UUID               NOT NULL,
     service_id            UUID               NOT NULL,
-    cost                  numeric            NOT NULL CHECK ( cost > 0 ),
+    cost                  decimal(18, 2)     NOT NULL CHECK ( cost > 0 ),
     status                reservation_status NOT NULL,
     created_at            TIMESTAMP          NOT NULL DEFAULT (now() AT TIME ZONE 'utc')
 );
@@ -45,10 +45,10 @@ CREATE TABLE commit_reservation
 
 CREATE TABLE replenishment
 (
-    deposit_id UUID PRIMARY KEY   DEFAULT gen_random_uuid(),
-    user_id    UUID      NOT NULL,
-    amount     numeric   NOT NULL CHECK ( amount > 0 ),
-    created_at TIMESTAMP NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
+    replenishment_id UUID PRIMARY KEY        DEFAULT gen_random_uuid(),
+    user_id    UUID           NOT NULL,
+    amount     decimal(18, 2) NOT NULL CHECK ( amount > 0 ),
+    created_at TIMESTAMP      NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
 
     CONSTRAINT fk_user
         FOREIGN KEY (user_id)
