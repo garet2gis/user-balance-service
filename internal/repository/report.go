@@ -24,12 +24,12 @@ func NewReportRepository(c *pgxpool.Pool, l *logging.Logger) *ReportRepository {
 
 func (r *ReportRepository) GetReport(ctx context.Context, year int, month int) ([]model.ReportRow, error) {
 	q := `
-		SELECT service.name, SUM(commit_reservation.cost) as "sum"
-		FROM commit_reservation
+		SELECT service.name, SUM(history_reservation.cost) as "sum"
+		FROM history_reservation
         JOIN service USING (service_id)
-		WHERE commit_reservation.status = 'confirm'
-  			AND EXTRACT(YEAR FROM commit_reservation.created_at) = $1
-  			AND EXTRACT(MONTH FROM commit_reservation.created_at) = $2
+		WHERE history_reservation.status = 'confirm'
+  			AND EXTRACT(YEAR FROM history_reservation.created_at) = $1
+  			AND EXTRACT(MONTH FROM history_reservation.created_at) = $2
 		GROUP BY service.name
 	`
 

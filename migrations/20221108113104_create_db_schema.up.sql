@@ -18,6 +18,7 @@ CREATE TABLE reservation
     service_id     UUID           NOT NULL,
     cost           decimal(18, 2) NOT NULL CHECK ( cost > 0 ),
     created_at     TIMESTAMP      NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
+    comment        TEXT           NOT NULL DEFAULT '',
 
     CONSTRAINT uq_reservation UNIQUE (user_id, order_id, service_id, cost),
 
@@ -30,14 +31,15 @@ CREATE TABLE reservation
             REFERENCES service (service_id)
 );
 
-CREATE TYPE reservation_status AS ENUM ('confirm', 'cancel');
-CREATE TABLE commit_reservation
+CREATE TYPE reservation_status AS ENUM ('confirm', 'cancel', 'was_reserve');
+CREATE TABLE history_reservation
 (
     commit_reservation_id UUID PRIMARY KEY            DEFAULT gen_random_uuid(),
     user_id               UUID               NOT NULL,
     order_id              UUID               NOT NULL,
     service_id            UUID               NOT NULL,
-    cost                  decimal(18, 2)     NOT NULL CHECK ( cost > 0 ),
+    cost                  decimal(18, 2)     NOT NULL,
+    comment               TEXT               NOT NULL DEFAULT '',
     status                reservation_status NOT NULL,
     created_at            TIMESTAMP          NOT NULL DEFAULT (now() AT TIME ZONE 'utc')
 );
@@ -48,6 +50,7 @@ CREATE TABLE replenishment
     replenishment_id UUID PRIMARY KEY        DEFAULT gen_random_uuid(),
     user_id          UUID           NOT NULL,
     amount           decimal(18, 2) NOT NULL CHECK ( amount > 0 ),
+    comment          TEXT           NOT NULL DEFAULT '',
     created_at       TIMESTAMP      NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
 
     CONSTRAINT fk_user
@@ -62,19 +65,21 @@ SELECT reservation.user_id,
        service.name           as service_name,
        reservation.created_at as create_date,
        reservation.cost       as amount,
+       reservation.comment,
        'reserve'              as transaction_type
 FROM reservation
          JOIN service USING (service_id)
 
 UNION
 
-SELECT commit_reservation.user_id,
-       commit_reservation.order_id,
+SELECT history_reservation.user_id,
+       history_reservation.order_id,
        service.name                           as service_name,
-       commit_reservation.created_at          as create_date,
-       commit_reservation.cost                as amount,
-       commit_reservation.status::varchar(32) as transaction_type
-FROM commit_reservation
+       history_reservation.created_at          as create_date,
+       history_reservation.cost                as amount,
+       history_reservation.comment,
+       history_reservation.status::varchar(32) as transaction_type
+FROM history_reservation
          JOIN service USING (service_id)
 
 UNION
@@ -84,5 +89,6 @@ SELECT replenishment.user_id,
        ''                       as service_name,
        replenishment.created_at as create_date,
        replenishment.amount,
+       replenishment.comment,
        'replenish'              as transaction_type
 FROM replenishment;

@@ -32,9 +32,10 @@ func main() {
 		logger.Infof("balance: %f", id)
 	}
 
-	balance, err := br.BR.ReplenishUserBalance(context.TODO(), model.BalanceModel{
-		UserID: "7a13445c-d6df-4111-abc0-abb12f610069",
-		Amount: 100,
+	balance, err := br.BR.ReplenishUserBalance(context.TODO(), model.BalanceDTO{
+		UserID:  "7a13445c-d6df-4111-abc0-abb12f610069",
+		Amount:  100,
+		Comment: "Информация о зачислении",
 	})
 
 	if err != nil {
@@ -43,20 +44,22 @@ func main() {
 		logger.Infof("new balance: %f", balance.Amount)
 	}
 
-	err = br.BR.ReserveMoney(context.TODO(), model.ReserveModel{
+	err = br.BR.ReserveMoney(context.TODO(), model.ReserveDTO{
 		UserID:    "7a13445c-d6df-4111-abc0-abb12f610069",
 		ServiceID: "b55e4e01-5152-4cb0-95f2-ee27d5d2e9cd",
 		OrderID:   "b55e4e01-5152-4cb0-95f2-ee27d5d2e9c1",
 		Cost:      100,
+		Comment:   "Информация о резерве денег на услугу",
 	})
 	if err != nil {
 		logger.Errorf("%v", err)
 	}
 
-	err = br.BR.CommitReservation(context.TODO(), model.ReserveModel{
+	err = br.BR.CommitReservation(context.TODO(), model.ReserveDTO{
 		UserID:    "7a13445c-d6df-4111-abc0-abb12f610069",
 		ServiceID: "b55e4e01-5152-4cb0-95f2-ee27d5d2e9cd",
 		OrderID:   "b55e4e01-5152-4cb0-95f2-ee27d5d2e9c1",
+		Comment:   "Информация о подтверждении списании денег",
 		Cost:      100,
 	}, repository.Confirm)
 	if err != nil {
