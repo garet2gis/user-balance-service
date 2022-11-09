@@ -1,0 +1,35 @@
+basePath: /balance/
+definitions:
+  handler.GetBalanceResponse:
+    properties:
+      balance:
+        description: Баланс пользователя
+        type: number
+      user_id:
+        description: UUID баланса пользователя
+        type: string
+    type: object
+info:
+  contact: {}
+  title: Adapter API documentation
+  version: 1.0.0
+paths:
+  /{user_id}:
+    get:
+      operationId: get-balance
+      parameters:
+      - default: 7a13445c-d6df-4111-abc0-abb12f610069
+        description: User ID
+        in: path
+        name: user_id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GetBalanceResponse'
+      summary: Получение баланса пользователя
+      tags:
+      - Balance
+swagger: "2.0"

@@ -22,6 +22,7 @@ type DBConfig struct {
 }
 
 type Config struct {
+	HTTP
 	DBConfig
 	IsDebug bool `env:"IS_DEBUG" env-default:"false"`
 }
