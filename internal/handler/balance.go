@@ -20,14 +20,10 @@ const (
 
 type handler struct {
 	logger *logging.Logger
-	repo   Repository
+	repo   BalanceRepository
 }
 
-type Repository interface {
-	GetBalanceByUserID(ctx context.Context, id string) (float64, error)
-}
-
-func NewHandler(r Repository, l *logging.Logger) Handler {
+func NewHandler(r BalanceRepository, l *logging.Logger) Handler {
 	return &handler{
 		logger: l,
 		repo:   r,
@@ -38,13 +34,20 @@ func (h *handler) Register(router *httprouter.Router) {
 	router.HandlerFunc(http.MethodGet, path.Join(basePath, balanceID), apperror.Middleware(h.GetBalance, h.logger))
 }
 
+type GetBalanceResponse struct {
+	// Баланс пользователя
+	Balance float64 `json:"balance"`
+	// UUID баланса пользователя
+	UserID string `json:"user_id"`
+}
+
 // GetBalance godoc
 // @Summary Получение баланса пользователя
-// @ID get-balance
-// @Param user_id path string true "User ID" default(7a13445c-d6df-4111-abc0-abb12f610069)
-// @Tags Balance
+// @ID      get-balance
+// @Param   user_id path string true "User ID" default(7a13445c-d6df-4111-abc0-abb12f610069)
+// @Tags    Balance
 // @Success 200 {object} GetBalanceResponse
-// @Router /{user_id} [get]
+// @Router  /{user_id} [get]
 func (h *handler) GetBalance(w http.ResponseWriter, r *http.Request) error {
 	h.logger.Tracef("url:%s host:%s", r.URL, r.Host)
 	w = utils.LogWriter{ResponseWriter: w}
@@ -73,11 +76,4 @@ func (h *handler) GetBalance(w http.ResponseWriter, r *http.Request) error {
 	w.Write(response)
 
 	return nil
-}
-
-type GetBalanceResponse struct {
-	// Баланс пользователя
-	Balance float64 `json:"balance"`
-	// UUID баланса пользователя
-	UserID string `json:"user_id"`
 }
