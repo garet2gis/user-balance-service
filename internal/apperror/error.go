@@ -9,10 +9,12 @@ var (
 )
 
 type AppError struct {
-	Err              error  `json:"-"`
-	Message          string `json:"message"`
+	Err error `json:"-"`
+	// Сообщение
+	Message string `json:"message"`
+	// Сообщение для разработчика
 	DeveloperMessage string `json:"developer_message"`
-}
+} // @name AppError
 
 func (e *AppError) Error() string {
 	return e.Message

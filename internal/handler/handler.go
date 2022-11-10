@@ -6,7 +6,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/julienschmidt/httprouter"
 	"user_balance_service/internal/apperror"
-	"user_balance_service/internal/model"
+	"user_balance_service/internal/dto"
 )
 
 type Handler interface {
@@ -15,7 +15,7 @@ type Handler interface {
 
 type BalanceRepository interface {
 	GetBalanceByUserID(ctx context.Context, id string) (float64, error)
-	ReplenishUserBalance(ctx context.Context, b model.Balance) (bm *model.Balance, err error)
+	ReplenishUserBalance(ctx context.Context, b dto.BalanceRequest) (bm *dto.BalanceRequest, err error)
 }
 
 func toJSONDecodeError(err error) error {
@@ -32,10 +32,3 @@ func validate(err error) error {
 	}
 	return nil
 }
-
-type ErrorResponse struct {
-	// Сообщение
-	Message string `json:"message" validate:"required"`
-	// Сообщение для разработчика
-	DeveloperMessage string `json:"developer_message" validate:"required"`
-} // @name ErrorResponse

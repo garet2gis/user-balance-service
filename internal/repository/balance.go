@@ -7,7 +7,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"user_balance_service/internal/apperror"
-	"user_balance_service/internal/model"
+	"user_balance_service/internal/dto"
 	"user_balance_service/pkg/logging"
 	"user_balance_service/pkg/postgresql"
 	"user_balance_service/pkg/utils"
@@ -47,7 +47,7 @@ func (r *BalanceRepository) createBalance(ctx context.Context, id string) error 
 	return nil
 }
 
-func (r *BalanceRepository) createReplenishment(ctx context.Context, b model.Balance) error {
+func (r *BalanceRepository) createReplenishment(ctx context.Context, b dto.BalanceRequest) error {
 	q := `
 		INSERT INTO replenishment (user_id, amount, comment) 
 		VALUES ($1, $2, $3)
@@ -63,7 +63,7 @@ func (r *BalanceRepository) createReplenishment(ctx context.Context, b model.Bal
 	return nil
 }
 
-func (r *BalanceRepository) ReplenishUserBalance(ctx context.Context, b model.Balance) (bm *model.Balance, err error) {
+func (r *BalanceRepository) ReplenishUserBalance(ctx context.Context, b dto.BalanceRequest) (bm *dto.BalanceRequest, err error) {
 	conn, err := r.client.Acquire(ctx)
 	if err != nil {
 		return nil, err

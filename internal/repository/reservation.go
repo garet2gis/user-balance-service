@@ -7,6 +7,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"user_balance_service/internal/apperror"
+	"user_balance_service/internal/dto"
 	"user_balance_service/internal/model"
 	"user_balance_service/pkg/logging"
 	"user_balance_service/pkg/postgresql"
@@ -35,7 +36,7 @@ func NewReservationRepository(c *pgxpool.Pool, l *logging.Logger) *ReservationRe
 	}
 }
 
-func (r *ReservationRepository) getReservation(ctx context.Context, rm model.Reserve) (*model.ReserveDBModel, error) {
+func (r *ReservationRepository) getReservation(ctx context.Context, rm model.Reserve) (*dto.ReserveDB, error) {
 	q := `
 		SELECT reservation_id,
 			user_id,
@@ -53,7 +54,7 @@ func (r *ReservationRepository) getReservation(ctx context.Context, rm model.Res
 
 	r.logger.Trace(fmt.Sprintf("SQL Query: %s", utils.FormatQuery(q)))
 
-	var m model.ReserveDBModel
+	var m dto.ReserveDB
 
 	s := r.client.QueryRow(ctx, q, rm.UserID, rm.OrderID, rm.ServiceID, rm.Cost)
 	err := s.Scan(&m.ReservationID, &m.UserID, &m.OrderID, &m.ServiceID, &m.Cost, &m.CreatedAt, &m.Comment)
@@ -86,7 +87,7 @@ func (r *ReservationRepository) createReservation(ctx context.Context, rm model.
 	return nil
 }
 
-func (r *ReservationRepository) createPreviousReservation(ctx context.Context, rm model.ReserveDBModel) error {
+func (r *ReservationRepository) createPreviousReservation(ctx context.Context, rm dto.ReserveDB) error {
 	q := `
 		INSERT INTO history_reservation (user_id, order_id, service_id, cost, status, comment, created_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)

@@ -10,6 +10,7 @@ import (
 	"path"
 	"strings"
 	"user_balance_service/internal/apperror"
+	"user_balance_service/internal/dto"
 	"user_balance_service/internal/model"
 	"user_balance_service/pkg/logging"
 	"user_balance_service/pkg/utils"
@@ -40,22 +41,15 @@ func (h *handler) Register(router *httprouter.Router) {
 	router.HandlerFunc(http.MethodPost, basePath, apperror.Middleware(h.UpdateBalance, h.logger))
 }
 
-type BalanceDTO struct {
-	// Баланс пользователя
-	Balance float64 `json:"balance" validate:"required"`
-	// UUID баланса пользователя
-	UserID string `json:"user_id" validate:"required"`
-} // @name BalanceDTO
-
 // GetBalance godoc
 // @Summary Получение баланса пользователя
 // @ID      get-balance
 // @Param   user_id path string true "User ID" default(7a13445c-d6df-4111-abc0-abb12f610069)
-// @Tags    Balance
-// @Success 200 {object} BalanceDTO
-// @Failure 400 {object} ErrorResponse
-// @Failure 404 {object} ErrorResponse
-// @Failure 418 {object} ErrorResponse
+// @Tags    BalanceRequest
+// @Success 200 {object} model.Balance
+// @Failure 400 {object} apperror.AppError
+// @Failure 404 {object} apperror.AppError
+// @Failure 418 {object} apperror.AppError
 // @Router  /balance/{user_id} [get]
 func (h *handler) GetBalance(w http.ResponseWriter, r *http.Request) error {
 	h.logger.Tracef("url:%s host:%s", r.URL, r.Host)
@@ -75,7 +69,7 @@ func (h *handler) GetBalance(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	b := &BalanceDTO{
+	b := &model.Balance{
 		Balance: newBalance,
 		UserID:  id,
 	}
@@ -93,46 +87,21 @@ func (h *handler) GetBalance(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-type BalanceRequest struct {
-	// Баланс пользователя
-	Balance float64 `json:"balance" validate:"required,gte=1"`
-	// UUID баланса пользователя
-	UserID string `json:"user_id"  example:"7a13445c-d6df-4111-abc0-abb12f610069" validate:"required,uuid"`
-	// UUID баланса пользователя
-	Comment string `json:"comment,omitempty"`
-} // @name BalanceRequest
-
-func NewBalanceRequest(b *model.Balance) *BalanceRequest {
-	return &BalanceRequest{
-		Balance: b.Amount,
-		UserID:  b.UserID,
-		Comment: b.Comment,
-	}
-}
-
-func (br *BalanceRequest) ToModel() *model.Balance {
-	return &model.Balance{
-		Amount:  br.Balance,
-		UserID:  br.UserID,
-		Comment: br.Comment,
-	}
-}
-
 // UpdateBalance godoc
 // @Summary     Пополнение баланса пользователя
 // @Description В случае обновления баланса ранее не упомянутого пользователя, он создается в БД
 // @ID          post-balance
-// @Param       balance body BalanceRequest true "User balance"
-// @Tags        Balance
-// @Success     200 {object} BalanceRequest
-// @Failure     400 {object} ErrorResponse
-// @Failure     418 {object} ErrorResponse
+// @Param       balance body dto.BalanceRequest true "User balance"
+// @Tags        BalanceRequest
+// @Success     200 {object} dto.BalanceRequest
+// @Failure     400 {object} apperror.AppError
+// @Failure     418 {object} apperror.AppError
 // @Router      /balance/ [post]
 func (h *handler) UpdateBalance(w http.ResponseWriter, r *http.Request) error {
 	h.logger.Tracef("url:%s host:%s", r.URL, r.Host)
 	w = utils.LogWriter{ResponseWriter: w}
 
-	var b BalanceRequest
+	var b dto.BalanceRequest
 	err := utils.DecodeJSON(w, r, &b)
 	if err != nil {
 		return toJSONDecodeError(err)
@@ -144,19 +113,17 @@ func (h *handler) UpdateBalance(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	bm := b.ToModel()
-	newBalance, err := h.repo.ReplenishUserBalance(context.Background(), *bm)
+	newBalance, err := h.repo.ReplenishUserBalance(context.Background(), b)
 	if err != nil {
 		return err
 	}
-	b = *NewBalanceRequest(newBalance)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	response, err := json.Marshal(b)
+	response, err := json.Marshal(newBalance)
 	if err != nil {
-		return toJSONDecodeError(fmt.Errorf("failed to marshal balance: %+v", b))
+		return toJSONDecodeError(fmt.Errorf("failed to marshal balance: %+v", newBalance))
 	}
 
 	w.Write(response)
