@@ -26,11 +26,13 @@ func NewHistoryRepository(c *pgxpool.Pool, l *logging.Logger) *HistoryRepository
 
 func (r *HistoryRepository) GetUserBalanceHistory(ctx context.Context, userID string) ([]model.HistoryRow, error) {
 	q := `
-		SELECT balance_history.order_id, 
-		        balance_history.service_name,
-		       	balance_history.create_date,
-		       	balance_history.amount,
-		       	balance_history.transaction_type
+		SELECT balance_history.order_id,
+       		balance_history.service_name,
+       		balance_history.from_user_id,
+       		balance_history.create_date,
+       		balance_history.amount,
+       		balance_history.transaction_type,
+       		balance_history.comment
 		FROM balance_history
 		WHERE balance_history.user_id = $1
 	`

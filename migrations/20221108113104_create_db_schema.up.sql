@@ -45,22 +45,27 @@ CREATE TABLE history_reservation
 );
 
 
-CREATE TABLE replenishment
+CREATE TABLE history_deposit
 (
-    replenishment_id UUID PRIMARY KEY        DEFAULT gen_random_uuid(),
-    user_id          UUID           NOT NULL,
-    amount           decimal(18, 2) NOT NULL CHECK ( amount > 0 ),
-    comment          TEXT           NOT NULL DEFAULT '',
-    created_at       TIMESTAMP      NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
+    history_deposit_id UUID PRIMARY KEY        DEFAULT gen_random_uuid(),
+    user_id            UUID           NOT NULL,
+    from_user_id       UUID CHECK ( from_user_id <> user_id ) DEFAULT NULL,
+    amount             decimal(18, 2) NOT NULL,
+    comment            TEXT           NOT NULL DEFAULT '',
+    created_at         TIMESTAMP      NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
 
     CONSTRAINT fk_user
         FOREIGN KEY (user_id)
+            REFERENCES balance (user_id),
+    CONSTRAINT fk_from_user
+        FOREIGN KEY (from_user_id)
             REFERENCES balance (user_id)
 );
 
 
 CREATE VIEW balance_history AS
 SELECT reservation.user_id,
+       CAST(NULL AS UUID)     as from_user_id,
        reservation.order_id,
        service.name           as service_name,
        reservation.created_at as create_date,
@@ -73,8 +78,9 @@ FROM reservation
 UNION
 
 SELECT history_reservation.user_id,
+       CAST(NULL AS UUID)                      as from_user_id,
        history_reservation.order_id,
-       service.name                           as service_name,
+       service.name                            as service_name,
        history_reservation.created_at          as create_date,
        history_reservation.cost                as amount,
        history_reservation.comment,
@@ -84,11 +90,12 @@ FROM history_reservation
 
 UNION
 
-SELECT replenishment.user_id,
-       NULL                     as order_id,
-       ''                       as service_name,
-       replenishment.created_at as create_date,
-       replenishment.amount,
-       replenishment.comment,
-       'replenish'              as transaction_type
-FROM replenishment;
+SELECT history_deposit.user_id,
+       history_deposit.from_user_id as from_user_id,
+       CAST(NULL AS UUID)           as order_id,
+       ''                           as service_name,
+       history_deposit.created_at   as create_date,
+       history_deposit.amount,
+       history_deposit.comment,
+       'balance_change'             as transaction_type
+FROM history_deposit;

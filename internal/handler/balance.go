@@ -88,7 +88,7 @@ func (h *handler) GetBalance(w http.ResponseWriter, r *http.Request) error {
 }
 
 // UpdateBalance godoc
-// @Summary     Пополнение баланса пользователя
+// @Summary     Изменяет баланс пользователя
 // @Description В случае обновления баланса ранее не упомянутого пользователя, он создается в БД
 // @ID          post-balance
 // @Param       balance body dto.BalanceRequest true "User balance"
@@ -113,7 +113,7 @@ func (h *handler) UpdateBalance(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	newBalance, err := h.repo.ReplenishUserBalance(context.Background(), b)
+	newBalance, err := h.repo.ChangeUserBalance(context.Background(), b)
 	if err != nil {
 		return err
 	}

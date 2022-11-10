@@ -26,11 +26,11 @@ func (r *ReportRepository) GetReport(ctx context.Context, year int, month int) (
 	q := `
 		SELECT service.name, SUM(history_reservation.cost) as "sum"
 		FROM history_reservation
-        JOIN service USING (service_id)
+		JOIN service USING (service_id)
 		WHERE history_reservation.status = 'confirm'
   			AND EXTRACT(YEAR FROM history_reservation.created_at) = $1
   			AND EXTRACT(MONTH FROM history_reservation.created_at) = $2
-		GROUP BY service.name
+		GROUP BY service.name;
 	`
 
 	r.logger.Trace(fmt.Sprintf("SQL Query: %s", utils.FormatQuery(q)))

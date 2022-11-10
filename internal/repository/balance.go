@@ -47,9 +47,9 @@ func (r *BalanceRepository) createBalance(ctx context.Context, id string) error 
 	return nil
 }
 
-func (r *BalanceRepository) createReplenishment(ctx context.Context, b dto.BalanceRequest) error {
+func (r *BalanceRepository) createHistoryDeposit(ctx context.Context, b dto.BalanceRequest) error {
 	q := `
-		INSERT INTO replenishment (user_id, amount, comment) 
+		INSERT INTO history_deposit (user_id, amount, comment) 
 		VALUES ($1, $2, $3)
 		`
 	r.logger.Trace(fmt.Sprintf("SQL Query: %s", utils.FormatQuery(q)))
@@ -63,7 +63,7 @@ func (r *BalanceRepository) createReplenishment(ctx context.Context, b dto.Balan
 	return nil
 }
 
-func (r *BalanceRepository) ReplenishUserBalance(ctx context.Context, b dto.BalanceRequest) (bm *dto.BalanceRequest, err error) {
+func (r *BalanceRepository) ChangeUserBalance(ctx context.Context, b dto.BalanceRequest) (bm *dto.BalanceRequest, err error) {
 	conn, err := r.client.Acquire(ctx)
 	if err != nil {
 		return nil, err
@@ -108,7 +108,7 @@ func (r *BalanceRepository) ReplenishUserBalance(ctx context.Context, b dto.Bala
 	}
 
 	// записываем пополнение баланса в таблицу replenishment для отображения истории
-	err = r.createReplenishment(ctx, b)
+	err = r.createHistoryDeposit(ctx, b)
 	if err != nil {
 		return nil, err
 	}

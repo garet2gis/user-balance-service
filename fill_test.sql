@@ -34,7 +34,7 @@ VALUES ('7a13445c-d6df-4111-abc0-abb12f610069', '34e16535-480c-43f8-95a9-b7a5034
        ('7a13445c-d6df-4111-abc0-abb12f610069', 'b55e4e01-5152-4cb0-95f2-ee27d5d2e9cd',
         '34e16535-480c-43f8-95a9-b7a503499afd', 100);
 
-INSERT INTO commit_reservation (user_id, order_id, service_id, cost, status)
+INSERT INTO history_reservation (user_id, order_id, service_id, cost, status)
 VALUES ('7a13445c-d6df-4111-abc0-abb12f610069', '34e16535-480c-43f8-95a9-b7a503499afb',
         '34e16535-480c-43f8-95a9-b7a503499afd', 100, 'cancel'),
        ('7a13445c-d6df-4111-abc0-abb12f610069', '34e16535-480c-43f8-95a9-b7a503499afb',
@@ -42,21 +42,33 @@ VALUES ('7a13445c-d6df-4111-abc0-abb12f610069', '34e16535-480c-43f8-95a9-b7a5034
 
 
 
-INSERT INTO replenishment (user_id, amount)
-VALUES ('7a13445c-d6df-4111-abc0-abb12f610069', 80),
-       ('7a13445c-d6df-4111-abc0-abb12f610069', 80),
-       ('1e472747-8ccf-4fef-9d65-2fdc71a72568', 80);
+-- INSERT INTO replenishment (user_id, amount)
+-- VALUES ('7a13445c-d6df-4111-abc0-abb12f610069', 80),
+--        ('7a13445c-d6df-4111-abc0-abb12f610069', 80),
+--        ('1e472747-8ccf-4fef-9d65-2fdc71a72568', 80);
 
 SELECT *
 FROM balance_history;
 
-SELECT service.name, SUM(commit_reservation.cost) as "sum"
-FROM commit_reservation
+SELECT service.name, SUM(history_reservation.cost) as "sum"
+FROM history_reservation
          JOIN service USING (service_id)
-WHERE commit_reservation.status = 'confirm'
-  AND EXTRACT(YEAR FROM commit_reservation.created_at) = 2022
-  AND EXTRACT(MONTH FROM commit_reservation.created_at) = 11
+WHERE history_reservation.status = 'confirm'
+  AND EXTRACT(YEAR FROM history_reservation.created_at) = 2022
+  AND EXTRACT(MONTH FROM history_reservation.created_at) = 11
 GROUP BY service.name;
+
+
+SELECT balance_history.order_id,
+       balance_history.service_name,
+       balance_history.from_user_id,
+       balance_history.create_date,
+       balance_history.amount,
+       balance_history.transaction_type,
+       balance_history.comment
+FROM balance_history
+WHERE balance_history.user_id = '';
+
 
 DELETE
 FROM reservation

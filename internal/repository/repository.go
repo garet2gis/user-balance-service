@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"user_balance_service/internal/apperror"
 	"user_balance_service/pkg/logging"
 )
 
@@ -29,11 +30,15 @@ func PgxErrorLog(err error, l *logging.Logger) error {
 	if errors.As(err, &pgErr) {
 		pgErr = err.(*pgconn.PgError)
 		if pgErr.Code == "23514" && pgErr.ConstraintName == "balance_balance_check" {
-			return NotEnoughMoney
+			return toDBError(NotEnoughMoney)
 		}
 		newErr := fmt.Errorf("Code: %s, Message: %s, Where: %s, Detail: %s, SQLState: %s", pgErr.Code, pgErr.Message, pgErr.Where, pgErr.Detail, pgErr.SQLState())
 		l.Error(newErr)
 		return newErr
 	}
 	return err
+}
+
+func toDBError(err error) error {
+	return apperror.NewAppError(err, "DB Error", err.Error())
 }

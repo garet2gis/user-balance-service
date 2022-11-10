@@ -15,7 +15,7 @@ type Handler interface {
 
 type BalanceRepository interface {
 	GetBalanceByUserID(ctx context.Context, id string) (float64, error)
-	ReplenishUserBalance(ctx context.Context, b dto.BalanceRequest) (bm *dto.BalanceRequest, err error)
+	ChangeUserBalance(ctx context.Context, b dto.BalanceRequest) (bm *dto.BalanceRequest, err error)
 }
 
 func toJSONDecodeError(err error) error {
