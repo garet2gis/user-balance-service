@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"user_balance_service/internal/model"
 	"user_balance_service/pkg/logging"
@@ -30,20 +29,6 @@ func NewBalanceRepository(c *pgxpool.Pool, l *logging.Logger) *BalanceRepository
 		client:         c,
 		logger:         l,
 	}
-}
-
-func PgxErrorLog(err error, l *logging.Logger) error {
-	var pgErr *pgconn.PgError
-	if errors.As(err, &pgErr) {
-		pgErr = err.(*pgconn.PgError)
-		if pgErr.Code == "23514" && pgErr.ConstraintName == "balance_balance_check" {
-			return NotEnoughMoney
-		}
-		newErr := fmt.Errorf("Code: %s, Message: %s, Where: %s, Detail: %s, SQLState: %s", pgErr.Code, pgErr.Message, pgErr.Where, pgErr.Detail, pgErr.SQLState())
-		l.Error(newErr)
-		return newErr
-	}
-	return err
 }
 
 func (r *BalanceRepository) createBalance(ctx context.Context, id string) error {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/go-playground/validator/v10"
 	"github.com/julienschmidt/httprouter"
 	"net/http"
 	"path"
@@ -20,14 +21,17 @@ const (
 )
 
 type handler struct {
-	logger *logging.Logger
-	repo   BalanceRepository
+	logger   *logging.Logger
+	repo     BalanceRepository
+	validate *validator.Validate
 }
 
 func NewHandler(r BalanceRepository, l *logging.Logger) Handler {
+
 	return &handler{
-		logger: l,
-		repo:   r,
+		logger:   l,
+		repo:     r,
+		validate: validator.New(),
 	}
 }
 
@@ -38,9 +42,9 @@ func (h *handler) Register(router *httprouter.Router) {
 
 type BalanceDTO struct {
 	// Баланс пользователя
-	Balance float64 `json:"balance"`
+	Balance float64 `json:"balance" validate:"required"`
 	// UUID баланса пользователя
-	UserID string `json:"user_id"`
+	UserID string `json:"user_id" validate:"required"`
 } // @name BalanceDTO
 
 // GetBalance godoc
@@ -56,6 +60,12 @@ func (h *handler) GetBalance(w http.ResponseWriter, r *http.Request) error {
 
 	splitPath := strings.Split(r.URL.Path, "/")
 	id := splitPath[len(splitPath)-1]
+
+	err := h.validate.Var(id, "required,uuid")
+	err = validate(err)
+	if err != nil {
+		return err
+	}
 
 	newBalance, err := h.repo.GetBalanceByUserID(context.Background(), id)
 	if err != nil {
@@ -82,9 +92,9 @@ func (h *handler) GetBalance(w http.ResponseWriter, r *http.Request) error {
 
 type BalanceRequest struct {
 	// Баланс пользователя
-	Balance float64 `json:"balance"`
+	Balance float64 `json:"balance" validate:"required,gte=1"`
 	// UUID баланса пользователя
-	UserID string `json:"user_id"  example:"7a13445c-d6df-4111-abc0-abb12f610069"`
+	UserID string `json:"user_id"  example:"7a13445c-d6df-4111-abc0-abb12f610069" validate:"required,uuid"`
 	// UUID баланса пользователя
 	Comment string `json:"comment,omitempty"`
 } // @name BalanceRequest
@@ -121,6 +131,12 @@ func (h *handler) UpdateBalance(w http.ResponseWriter, r *http.Request) error {
 	err := utils.DecodeJSON(w, r, &b)
 	if err != nil {
 		return toJSONDecodeError(err)
+	}
+
+	err = h.validate.Struct(b)
+	err = validate(err)
+	if err != nil {
+		return err
 	}
 
 	bm := b.ToModel()
