@@ -46,7 +46,7 @@ type BalanceDTO struct {
 // GetBalance godoc
 // @Summary Получение баланса пользователя
 // @ID      get-balance
-// @Param   user_id path string true "User ID" example(7a13445c-d6df-4111-abc0-abb12f610069)
+// @Param   user_id path string true "User ID" default(7a13445c-d6df-4111-abc0-abb12f610069)
 // @Tags    Balance
 // @Success 200 {object} BalanceDTO
 // @Router  /balance/{user_id} [get]
@@ -118,9 +118,9 @@ func (h *handler) UpdateBalance(w http.ResponseWriter, r *http.Request) error {
 	w = utils.LogWriter{ResponseWriter: w}
 
 	var b BalanceRequest
-	err := json.NewDecoder(r.Body).Decode(&b)
+	err := utils.DecodeJSON(w, r, &b)
 	if err != nil {
-		return fmt.Errorf("failed to decode new balance")
+		return toJSONDecodeError(err)
 	}
 
 	bm := b.ToModel()
@@ -135,7 +135,7 @@ func (h *handler) UpdateBalance(w http.ResponseWriter, r *http.Request) error {
 
 	response, err := json.Marshal(b)
 	if err != nil {
-		return fmt.Errorf("failed to marshal balance: %+v", b)
+		return toJSONDecodeError(fmt.Errorf("failed to marshal balance: %+v", b))
 	}
 
 	w.Write(response)

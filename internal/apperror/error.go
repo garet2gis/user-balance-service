@@ -1,6 +1,8 @@
 package apperror
 
-import "encoding/json"
+import (
+	"encoding/json"
+)
 
 var (
 	ErrNotFound = NewAppError(nil, "not found", "")
@@ -10,7 +12,6 @@ type AppError struct {
 	Err              error  `json:"-"`
 	Message          string `json:"message"`
 	DeveloperMessage string `json:"developer_message"`
-	//Code             string `json:"code"`
 }
 
 func (e *AppError) Error() string {
