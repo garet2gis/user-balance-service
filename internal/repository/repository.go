@@ -6,15 +6,17 @@ import (
 )
 
 type Repository struct {
-	HR *HistoryRepository
-	BR *BalanceRepository
-	RR *ReportRepository
+	ReservationRepository
+	HistoryRepository
+	BalanceRepository
+	ReportRepository
 }
 
 func NewRepository(c *pgxpool.Pool, l *logging.Logger) *Repository {
 	return &Repository{
-		HR: NewHistoryRepository(c, l),
-		BR: NewBalanceRepository(c, l),
-		RR: NewReportRepository(c, l),
+		HistoryRepository:     *NewHistoryRepository(c, l),
+		BalanceRepository:     *NewBalanceRepository(c, l),
+		ReportRepository:      *NewReportRepository(c, l),
+		ReservationRepository: *NewReservationRepository(c, l),
 	}
 }

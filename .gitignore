@@ -3,3 +3,4 @@
 .idea
 .bin
 logs
+cmd/main/docs

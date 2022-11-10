@@ -17,10 +17,10 @@ import (
 	"user_balance_service/cmd/main/docs"
 )
 
-// @title   Adapter API documentation
+// @title   API User Balance Service
 // @version 1.0.0
 
-// @BasePath /balance/
+// @BasePath /
 
 func main() {
 	logging.Init()
@@ -39,7 +39,7 @@ func main() {
 
 	router := httprouter.New()
 
-	balanceHandler := handler.NewHandler(r.BR, logger)
+	balanceHandler := handler.NewHandler(r, logger)
 	balanceHandler.Register(router)
 
 	host := fmt.Sprintf("%s:%s", cfg.HTTP.Host, cfg.HTTP.Port)

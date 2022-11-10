@@ -2,13 +2,13 @@ package model
 
 import "github.com/jackc/pgx/v5/pgtype"
 
-type BalanceDTO struct {
+type Balance struct {
 	UserID  string  `json:"user_id"`
 	Amount  float64 `json:"amount"`
 	Comment string  `json:"comment"`
 }
 
-type ReserveDTO struct {
+type Reserve struct {
 	UserID    string  `json:"user_id"`
 	ServiceID string  `json:"service_id"`
 	OrderID   string  `json:"order_id"`
@@ -16,7 +16,7 @@ type ReserveDTO struct {
 	Comment   string  `json:"comment"`
 }
 
-type ReserveModel struct {
+type ReserveDBModel struct {
 	UserID        string  `json:"user_id"`
 	ReservationID string  `json:"reservation_id"`
 	ServiceID     string  `json:"service_id"`
