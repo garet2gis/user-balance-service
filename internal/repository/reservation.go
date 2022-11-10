@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"user_balance_service/internal/apperror"
 	"user_balance_service/internal/model"
 	"user_balance_service/pkg/logging"
 	"user_balance_service/pkg/postgresql"
@@ -18,10 +19,6 @@ const (
 	Confirm    Status = "confirm"
 	Cancel            = "cancel"
 	WasReserve        = "was_reserve"
-)
-
-var (
-	ReservationNotFound = errors.New("reservation not found")
 )
 
 type ReservationRepository struct {
@@ -63,7 +60,7 @@ func (r *ReservationRepository) getReservation(ctx context.Context, rm model.Res
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, ReservationNotFound
+			return nil, apperror.ErrNotFound
 		}
 
 		err = PgxErrorLog(err, r.logger)
@@ -146,7 +143,7 @@ func (r *ReservationRepository) deleteReservation(ctx context.Context, rm model.
 	}
 
 	if commandTag.RowsAffected() != 1 {
-		return ReservationNotFound
+		return apperror.ErrNotFound
 	}
 
 	return nil

@@ -53,6 +53,9 @@ type BalanceDTO struct {
 // @Param   user_id path string true "User ID" default(7a13445c-d6df-4111-abc0-abb12f610069)
 // @Tags    Balance
 // @Success 200 {object} BalanceDTO
+// @Failure 400 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 418 {object} ErrorResponse
 // @Router  /balance/{user_id} [get]
 func (h *handler) GetBalance(w http.ResponseWriter, r *http.Request) error {
 	h.logger.Tracef("url:%s host:%s", r.URL, r.Host)
@@ -122,6 +125,8 @@ func (br *BalanceRequest) ToModel() *model.Balance {
 // @Param       balance body BalanceRequest true "User balance"
 // @Tags        Balance
 // @Success     200 {object} BalanceRequest
+// @Failure     400 {object} ErrorResponse
+// @Failure     418 {object} ErrorResponse
 // @Router      /balance/ [post]
 func (h *handler) UpdateBalance(w http.ResponseWriter, r *http.Request) error {
 	h.logger.Tracef("url:%s host:%s", r.URL, r.Host)

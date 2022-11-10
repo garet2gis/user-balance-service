@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"user_balance_service/internal/apperror"
 	"user_balance_service/internal/model"
 	"user_balance_service/pkg/logging"
 	"user_balance_service/pkg/postgresql"
@@ -13,8 +14,7 @@ import (
 )
 
 var (
-	BalanceNotFound = errors.New("user's balance not found")
-	NotEnoughMoney  = errors.New("not enough money on balance")
+	NotEnoughMoney = errors.New("not enough money on balance")
 )
 
 type BalanceRepository struct {
@@ -92,7 +92,7 @@ func (r *BalanceRepository) ReplenishUserBalance(ctx context.Context, b model.Ba
 
 	_, err = r.GetBalanceByUserID(ctx, b.UserID)
 	if err != nil {
-		if errors.Is(err, BalanceNotFound) {
+		if errors.Is(err, apperror.ErrNotFound) {
 			err = r.createBalance(ctx, b.UserID)
 			if err != nil {
 				return nil, err
@@ -131,7 +131,7 @@ func (r *BalanceRepository) GetBalanceByUserID(ctx context.Context, id string) (
 
 	if err := r.client.QueryRow(ctx, q, id).Scan(&balance); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return 0, BalanceNotFound
+			return 0, apperror.ErrNotFound
 		}
 
 		err = PgxErrorLog(err, r.logger)

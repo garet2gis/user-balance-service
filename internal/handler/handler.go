@@ -32,3 +32,10 @@ func validate(err error) error {
 	}
 	return nil
 }
+
+type ErrorResponse struct {
+	// Сообщение
+	Message string `json:"message" validate:"required"`
+	// Сообщение для разработчика
+	DeveloperMessage string `json:"developer_message" validate:"required"`
+} // @name ErrorResponse
