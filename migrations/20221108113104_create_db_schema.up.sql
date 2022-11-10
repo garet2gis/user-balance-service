@@ -47,12 +47,13 @@ CREATE TABLE history_reservation
 
 CREATE TABLE history_deposit
 (
-    history_deposit_id UUID PRIMARY KEY        DEFAULT gen_random_uuid(),
+    history_deposit_id UUID PRIMARY KEY                                                   DEFAULT gen_random_uuid(),
     user_id            UUID           NOT NULL,
-    from_user_id       UUID CHECK ( from_user_id <> user_id ) DEFAULT NULL,
+    from_user_id       UUID CHECK ( from_user_id <> user_id )                             DEFAULT NULL,
+    to_user_id         UUID CHECK ( to_user_id <> user_id AND to_user_id <> from_user_id) DEFAULT NULL,
     amount             decimal(18, 2) NOT NULL,
-    comment            TEXT           NOT NULL DEFAULT '',
-    created_at         TIMESTAMP      NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
+    comment            TEXT           NOT NULL                                            DEFAULT '',
+    created_at         TIMESTAMP      NOT NULL                                            DEFAULT (now() AT TIME ZONE 'utc'),
 
     CONSTRAINT fk_user
         FOREIGN KEY (user_id)
@@ -66,6 +67,7 @@ CREATE TABLE history_deposit
 CREATE VIEW balance_history AS
 SELECT reservation.user_id,
        CAST(NULL AS UUID)     as from_user_id,
+       CAST(NULL AS UUID)     as to_user_id,
        reservation.order_id,
        service.name           as service_name,
        reservation.created_at as create_date,
@@ -79,6 +81,7 @@ UNION
 
 SELECT history_reservation.user_id,
        CAST(NULL AS UUID)                      as from_user_id,
+       CAST(NULL AS UUID)                      as to_user_id,
        history_reservation.order_id,
        service.name                            as service_name,
        history_reservation.created_at          as create_date,
@@ -91,7 +94,8 @@ FROM history_reservation
 UNION
 
 SELECT history_deposit.user_id,
-       history_deposit.from_user_id as from_user_id,
+       history_deposit.from_user_id,
+       history_deposit.to_user_id,
        CAST(NULL AS UUID)           as order_id,
        ''                           as service_name,
        history_deposit.created_at   as create_date,

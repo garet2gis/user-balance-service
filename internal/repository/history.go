@@ -29,6 +29,7 @@ func (r *HistoryRepository) GetUserBalanceHistory(ctx context.Context, userID st
 		SELECT balance_history.order_id,
        		balance_history.service_name,
        		balance_history.from_user_id,
+       		balance_history.to_user_id,
        		balance_history.create_date,
        		balance_history.amount,
        		balance_history.transaction_type,
