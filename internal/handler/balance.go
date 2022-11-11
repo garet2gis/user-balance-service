@@ -19,11 +19,13 @@ const (
 	basePath  = "/balance/"
 	replenish = "/replenish/"
 	reduce    = "/reduce/"
+	transfer  = "/transfer/"
 )
 
 type BalanceService interface {
 	ChangeUserBalance(ctx context.Context, b dto.BalanceChangeRequest, depositType model.DepositType) (bm *dto.BalanceChangeRequest, err error)
 	GetBalanceByUserID(ctx context.Context, id string) (*model.Balance, error)
+	TransferMoney(ctx context.Context, transfer dto.TransferRequest) (err error)
 }
 
 type handler struct {
@@ -44,6 +46,7 @@ func (h *handler) Register(router *httprouter.Router) {
 	router.HandlerFunc(http.MethodGet, basePath, apperror.Middleware(h.GetBalance, h.logger))
 	router.HandlerFunc(http.MethodPost, path.Join(basePath, replenish), apperror.Middleware(h.ReplenishBalance, h.logger))
 	router.HandlerFunc(http.MethodPost, path.Join(basePath, reduce), apperror.Middleware(h.ReduceBalance, h.logger))
+	router.HandlerFunc(http.MethodPost, path.Join(basePath, transfer), apperror.Middleware(h.TransferBalance, h.logger))
 }
 
 // GetBalance godoc
@@ -148,6 +151,41 @@ func (h *handler) changeBalance(w http.ResponseWriter, r *http.Request, depositT
 	}
 
 	w.Write(response)
+
+	return nil
+}
+
+// TransferBalance godoc
+// @Summary Переводит деньги с одного счета на другой
+// @ID      transfer-balance
+// @Param   balance body dto.TransferRequest true "Transfer money"
+// @Tags    Balance
+// @Success 204
+// @Failure 400 {object} apperror.AppError
+// @Failure 418 {object} apperror.AppError
+// @Router  /balance/transfer/ [post]
+func (h *handler) TransferBalance(w http.ResponseWriter, r *http.Request) error {
+	h.logger.Tracef("url:%s host:%s", r.URL, r.Host)
+	w = utils.LogWriter{ResponseWriter: w}
+
+	var b dto.TransferRequest
+	err := utils.DecodeJSON(w, r, &b)
+	if err != nil {
+		return toJSONDecodeError(err)
+	}
+
+	err = h.validate.Struct(b)
+	err = validate(err)
+	if err != nil {
+		return err
+	}
+
+	err = h.service.TransferMoney(context.Background(), b)
+	if err != nil {
+		return err
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 
 	return nil
 }

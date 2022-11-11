@@ -13,6 +13,7 @@ type BalanceRepository interface {
 	TransactionRepository
 	GetBalanceByUserID(ctx context.Context, id string) (float64, error)
 	CreateHistoryDeposit(ctx context.Context, b dto.BalanceChangeRequest) error
+	CreateHistoryTransfer(ctx context.Context, b dto.TransferRequest) error
 	CreateBalance(ctx context.Context, id string) error
 	ChangeBalance(ctx context.Context, userID string, diff float64) (float64, error)
 }
@@ -83,4 +84,35 @@ func (bs *BalanceService) GetBalanceByUserID(ctx context.Context, id string) (*m
 		Balance: balance,
 		UserID:  id,
 	}, nil
+}
+
+func (bs *BalanceService) TransferMoney(ctx context.Context, transfer dto.TransferRequest) (err error) {
+	t, err := bs.repo.BeginTransaction(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			bs.repo.RollbackTransaction(ctx, t)
+		} else {
+			bs.repo.CommitTransaction(ctx, t)
+		}
+	}()
+
+	_, err = bs.repo.ChangeBalance(ctx, transfer.UserIDFrom, -transfer.Amount)
+	if err != nil {
+		return err
+	}
+
+	_, err = bs.repo.ChangeBalance(ctx, transfer.UserIDTo, transfer.Amount)
+	if err != nil {
+		return err
+	}
+
+	err = bs.repo.CreateHistoryTransfer(ctx, transfer)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

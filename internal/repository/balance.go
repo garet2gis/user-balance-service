@@ -63,6 +63,35 @@ func (r *BalanceRepository) CreateHistoryDeposit(ctx context.Context, b dto.Bala
 	return nil
 }
 
+func (r *BalanceRepository) CreateHistoryTransfer(ctx context.Context, b dto.TransferRequest) error {
+
+	q := `
+		INSERT INTO history_deposit (user_id, to_user_id, amount, comment) 
+		VALUES ($1, $2 ,$3, $4)
+		`
+	r.logger.Trace(fmt.Sprintf("SQL Query: %s", utils.FormatQuery(q)))
+
+	_, err := r.client.Exec(ctx, q, b.UserIDFrom, b.UserIDTo, -b.Amount, b.Comment)
+	if err != nil {
+		err = PgxErrorLog(err, r.logger)
+		return err
+	}
+
+	q = `
+		INSERT INTO history_deposit (user_id, from_user_id, amount, comment) 
+		VALUES ($1, $2 ,$3, $4)
+		`
+	r.logger.Trace(fmt.Sprintf("SQL Query: %s", utils.FormatQuery(q)))
+
+	_, err = r.client.Exec(ctx, q, b.UserIDTo, b.UserIDFrom, b.Amount, b.Comment)
+	if err != nil {
+		err = PgxErrorLog(err, r.logger)
+		return err
+	}
+
+	return nil
+}
+
 func (r *BalanceRepository) GetBalanceByUserID(ctx context.Context, id string) (float64, error) {
 	q := `
 		SELECT 
