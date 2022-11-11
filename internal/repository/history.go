@@ -53,8 +53,10 @@ func (r *HistoryRepository) GetUserBalanceHistory(ctx context.Context, userID st
 
 		var createAt pgtype.Timestamp
 		var orderID pgtype.UUID
+		var UserIDFrom pgtype.UUID
+		var UserIDTo pgtype.UUID
 
-		err = rows.Scan(&orderID, &row.ServiceName, &createAt, &row.Amount, &row.TransactionType)
+		err = rows.Scan(&orderID, &row.ServiceName, &UserIDFrom, &UserIDTo, &createAt, &row.Amount, &row.TransactionType, &row.Comment)
 		if err != nil {
 			return nil, err
 		}
@@ -63,6 +65,12 @@ func (r *HistoryRepository) GetUserBalanceHistory(ctx context.Context, userID st
 		row.CreateAt = createAt.Time.Add(time.Hour * 3).String()
 		if orderID.Valid {
 			row.OrderID = utils.EncodeUUID(orderID)
+		}
+		if UserIDFrom.Valid {
+			row.UserIDFrom = utils.EncodeUUID(UserIDFrom)
+		}
+		if UserIDTo.Valid {
+			row.UserIDTo = utils.EncodeUUID(UserIDTo)
 		}
 
 		historyRows = append(historyRows, row)

@@ -19,7 +19,7 @@ type TransferRequest struct {
 	// UUID баланса отправителя
 	UserIDFrom string `json:"user_id_from"  example:"7a13445c-d6df-4111-abc0-abb12f610069" validate:"required,uuid"`
 	// UUID баланса получателя
-	UserIDTo string `json:"user_id_to"  example:"7a13445c-d6df-4111-abc0-abb12f610068" validate:"required,uuid,necsfield=TransferRequest.UserIDFrom"`
+	UserIDTo string `json:"user_id_to"  example:"7a13445c-d6df-4111-abc0-abb12f610068" validate:"required,uuid,necsfield=UserIDFrom"`
 	// Коментарий
 	Comment string `json:"comment,omitempty"`
 } // @name TransferRequest

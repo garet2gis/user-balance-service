@@ -59,8 +59,11 @@ func run(ctx context.Context) error {
 
 	router := httprouter.New()
 
-	balanceHandler := handler.NewHandler(s, logger)
+	balanceHandler := handler.NewBalanceHandler(s, logger)
 	balanceHandler.Register(router)
+
+	historyHandler := handler.NewHistoryHandler(s, logger)
+	historyHandler.Register(router)
 
 	host := fmt.Sprintf("%s:%s", cfg.HTTP.Host, cfg.HTTP.Port)
 	swaggerInit(router, host)

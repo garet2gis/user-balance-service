@@ -28,21 +28,21 @@ type BalanceService interface {
 	TransferMoney(ctx context.Context, transfer dto.TransferRequest) (err error)
 }
 
-type handler struct {
+type balanceHandler struct {
 	logger   *logging.Logger
 	service  BalanceService
 	validate *validator.Validate
 }
 
-func NewHandler(s BalanceService, l *logging.Logger) Handler {
-	return &handler{
+func NewBalanceHandler(s BalanceService, l *logging.Logger) Handler {
+	return &balanceHandler{
 		logger:   l,
 		service:  s,
 		validate: validator.New(),
 	}
 }
 
-func (h *handler) Register(router *httprouter.Router) {
+func (h *balanceHandler) Register(router *httprouter.Router) {
 	router.HandlerFunc(http.MethodGet, basePath, apperror.Middleware(h.GetBalance, h.logger))
 	router.HandlerFunc(http.MethodPost, path.Join(basePath, replenish), apperror.Middleware(h.ReplenishBalance, h.logger))
 	router.HandlerFunc(http.MethodPost, path.Join(basePath, reduce), apperror.Middleware(h.ReduceBalance, h.logger))
@@ -59,7 +59,7 @@ func (h *handler) Register(router *httprouter.Router) {
 // @Failure 404 {object} apperror.AppError
 // @Failure 418 {object} apperror.AppError
 // @Router  /balance/ [get]
-func (h *handler) GetBalance(w http.ResponseWriter, r *http.Request) error {
+func (h *balanceHandler) GetBalance(w http.ResponseWriter, r *http.Request) error {
 	h.logger.Tracef("url:%s host:%s", r.URL, r.Host)
 	w = utils.LogWriter{ResponseWriter: w}
 
@@ -103,7 +103,7 @@ func (h *handler) GetBalance(w http.ResponseWriter, r *http.Request) error {
 // @Failure     400 {object} apperror.AppError
 // @Failure     418 {object} apperror.AppError
 // @Router      /balance/replenish/ [post]
-func (h *handler) ReplenishBalance(w http.ResponseWriter, r *http.Request) error {
+func (h *balanceHandler) ReplenishBalance(w http.ResponseWriter, r *http.Request) error {
 	return h.changeBalance(w, r, model.Replenish)
 }
 
@@ -117,11 +117,11 @@ func (h *handler) ReplenishBalance(w http.ResponseWriter, r *http.Request) error
 // @Failure     400 {object} apperror.AppError
 // @Failure     418 {object} apperror.AppError
 // @Router      /balance/reduce/ [post]
-func (h *handler) ReduceBalance(w http.ResponseWriter, r *http.Request) error {
+func (h *balanceHandler) ReduceBalance(w http.ResponseWriter, r *http.Request) error {
 	return h.changeBalance(w, r, model.Reduce)
 }
 
-func (h *handler) changeBalance(w http.ResponseWriter, r *http.Request, depositType model.DepositType) error {
+func (h *balanceHandler) changeBalance(w http.ResponseWriter, r *http.Request, depositType model.DepositType) error {
 	h.logger.Tracef("url:%s host:%s", r.URL, r.Host)
 	w = utils.LogWriter{ResponseWriter: w}
 
@@ -164,7 +164,7 @@ func (h *handler) changeBalance(w http.ResponseWriter, r *http.Request, depositT
 // @Failure 400 {object} apperror.AppError
 // @Failure 418 {object} apperror.AppError
 // @Router  /balance/transfer/ [post]
-func (h *handler) TransferBalance(w http.ResponseWriter, r *http.Request) error {
+func (h *balanceHandler) TransferBalance(w http.ResponseWriter, r *http.Request) error {
 	h.logger.Tracef("url:%s host:%s", r.URL, r.Host)
 	w = utils.LogWriter{ResponseWriter: w}
 
