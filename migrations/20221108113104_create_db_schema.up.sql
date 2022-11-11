@@ -31,29 +31,29 @@ CREATE TABLE reservation
             REFERENCES service (service_id)
 );
 
-CREATE TYPE reservation_status AS ENUM ('confirm', 'cancel', 'was_reserve');
+CREATE TYPE reservation_status AS ENUM ('confirm', 'cancel');
 CREATE TABLE history_reservation
 (
-    commit_reservation_id UUID PRIMARY KEY            DEFAULT gen_random_uuid(),
-    user_id               UUID               NOT NULL,
-    order_id              UUID               NOT NULL,
-    service_id            UUID               NOT NULL,
-    cost                  decimal(18, 2)     NOT NULL,
-    comment               TEXT               NOT NULL DEFAULT '',
-    status                reservation_status NOT NULL,
-    created_at            TIMESTAMP          NOT NULL DEFAULT (now() AT TIME ZONE 'utc')
+    commit_reservation_id UUID PRIMARY KEY                         DEFAULT gen_random_uuid(),
+    user_id               UUID                            NOT NULL,
+    order_id              UUID                            NOT NULL,
+    service_id            UUID                            NOT NULL,
+    cost                  decimal(18, 2) CHECK (cost > 0) NOT NULL,
+    comment               TEXT                            NOT NULL DEFAULT '',
+    status                reservation_status              NOT NULL,
+    created_at            TIMESTAMP                       NOT NULL DEFAULT (now() AT TIME ZONE 'utc')
 );
 
 
 CREATE TABLE history_deposit
 (
-    history_deposit_id UUID PRIMARY KEY                                                   DEFAULT gen_random_uuid(),
-    user_id            UUID           NOT NULL,
-    from_user_id       UUID CHECK ( from_user_id <> user_id )                             DEFAULT NULL,
-    to_user_id         UUID CHECK ( to_user_id <> user_id AND to_user_id <> from_user_id) DEFAULT NULL,
-    amount             decimal(18, 2) NOT NULL,
-    comment            TEXT           NOT NULL                                            DEFAULT '',
-    created_at         TIMESTAMP      NOT NULL                                            DEFAULT (now() AT TIME ZONE 'utc'),
+    history_deposit_id UUID PRIMARY KEY                                                  DEFAULT gen_random_uuid(),
+    user_id            UUID                               NOT NULL,
+    from_user_id       UUID CHECK (from_user_id <> user_id)                              DEFAULT NULL,
+    to_user_id         UUID CHECK (to_user_id <> user_id AND to_user_id <> from_user_id) DEFAULT NULL,
+    amount             decimal(18, 2) CHECK (amount <> 0) NOT NULL,
+    comment            TEXT                               NOT NULL                       DEFAULT '',
+    created_at         TIMESTAMP                          NOT NULL                       DEFAULT (now() AT TIME ZONE 'utc'),
 
     CONSTRAINT fk_user
         FOREIGN KEY (user_id)
@@ -96,10 +96,10 @@ UNION
 SELECT history_deposit.user_id,
        history_deposit.from_user_id,
        history_deposit.to_user_id,
-       CAST(NULL AS UUID)           as order_id,
-       ''                           as service_name,
-       history_deposit.created_at   as create_date,
+       CAST(NULL AS UUID)         as order_id,
+       ''                         as service_name,
+       history_deposit.created_at as create_date,
        history_deposit.amount,
        history_deposit.comment,
-       'balance_change'             as transaction_type
+       'balance_change'           as transaction_type
 FROM history_deposit;

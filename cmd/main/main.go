@@ -13,6 +13,7 @@ import (
 	"user_balance_service/internal/config"
 	"user_balance_service/internal/handler"
 	"user_balance_service/internal/repository"
+	"user_balance_service/internal/service"
 	"user_balance_service/pkg/logging"
 	"user_balance_service/pkg/postgresql"
 
@@ -23,6 +24,7 @@ import (
 // @version 1.0.0
 
 // @BasePath /
+// @produce  json
 
 func main() {
 	logging.Init()
@@ -53,10 +55,11 @@ func run(ctx context.Context) error {
 	insertTestDataInServicesTable(client, logger)
 
 	r := repository.NewRepository(client, logger)
+	s := service.NewService(r, logger)
 
 	router := httprouter.New()
 
-	balanceHandler := handler.NewHandler(r, logger)
+	balanceHandler := handler.NewHandler(s, logger)
 	balanceHandler.Register(router)
 
 	host := fmt.Sprintf("%s:%s", cfg.HTTP.Host, cfg.HTTP.Port)

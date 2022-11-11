@@ -8,7 +8,6 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"net/http"
 	"path"
-	"strings"
 	"user_balance_service/internal/apperror"
 	"user_balance_service/internal/dto"
 	"user_balance_service/internal/model"
@@ -18,60 +17,64 @@ import (
 
 const (
 	basePath  = "/balance/"
-	balanceID = "/:id"
+	replenish = "/replenish/"
+	reduce    = "/reduce/"
 )
+
+type BalanceService interface {
+	ChangeUserBalance(ctx context.Context, b dto.BalanceChangeRequest, depositType model.DepositType) (bm *dto.BalanceChangeRequest, err error)
+	GetBalanceByUserID(ctx context.Context, id string) (*model.Balance, error)
+}
 
 type handler struct {
 	logger   *logging.Logger
-	repo     BalanceRepository
+	service  BalanceService
 	validate *validator.Validate
 }
 
-func NewHandler(r BalanceRepository, l *logging.Logger) Handler {
-
+func NewHandler(s BalanceService, l *logging.Logger) Handler {
 	return &handler{
 		logger:   l,
-		repo:     r,
+		service:  s,
 		validate: validator.New(),
 	}
 }
 
 func (h *handler) Register(router *httprouter.Router) {
-	router.HandlerFunc(http.MethodGet, path.Join(basePath, balanceID), apperror.Middleware(h.GetBalance, h.logger))
-	router.HandlerFunc(http.MethodPost, basePath, apperror.Middleware(h.UpdateBalance, h.logger))
+	router.HandlerFunc(http.MethodGet, basePath, apperror.Middleware(h.GetBalance, h.logger))
+	router.HandlerFunc(http.MethodPost, path.Join(basePath, replenish), apperror.Middleware(h.ReplenishBalance, h.logger))
+	router.HandlerFunc(http.MethodPost, path.Join(basePath, reduce), apperror.Middleware(h.ReduceBalance, h.logger))
 }
 
 // GetBalance godoc
 // @Summary Получение баланса пользователя
 // @ID      get-balance
-// @Param   user_id path string true "User ID" default(7a13445c-d6df-4111-abc0-abb12f610069)
-// @Tags    BalanceRequest
+// @Param   user_id body dto.BalanceGetRequest true "User ID"
+// @Tags    Balance
 // @Success 200 {object} model.Balance
 // @Failure 400 {object} apperror.AppError
 // @Failure 404 {object} apperror.AppError
 // @Failure 418 {object} apperror.AppError
-// @Router  /balance/{user_id} [get]
+// @Router  /balance/ [get]
 func (h *handler) GetBalance(w http.ResponseWriter, r *http.Request) error {
 	h.logger.Tracef("url:%s host:%s", r.URL, r.Host)
 	w = utils.LogWriter{ResponseWriter: w}
 
-	splitPath := strings.Split(r.URL.Path, "/")
-	id := splitPath[len(splitPath)-1]
+	var uID dto.BalanceGetRequest
+	err := utils.DecodeJSON(w, r, &uID)
+	if err != nil {
+		return toJSONDecodeError(err)
+	}
 
-	err := h.validate.Var(id, "required,uuid")
+	err = h.validate.Struct(uID)
 	err = validate(err)
 	if err != nil {
 		return err
 	}
 
-	newBalance, err := h.repo.GetBalanceByUserID(context.Background(), id)
+	b, err := h.service.GetBalanceByUserID(context.Background(), uID.UserID)
 	if err != nil {
 		return err
-	}
-
-	b := &model.Balance{
-		Balance: newBalance,
-		UserID:  id,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -87,21 +90,39 @@ func (h *handler) GetBalance(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-// UpdateBalance godoc
-// @Summary     Изменяет баланс пользователя
-// @Description В случае обновления баланса ранее не упомянутого пользователя, он создается в БД
-// @ID          post-balance
-// @Param       balance body dto.BalanceRequest true "User balance"
-// @Tags        BalanceRequest
-// @Success     200 {object} dto.BalanceRequest
+// ReplenishBalance godoc
+// @Summary     Пополняет баланс пользователя
+// @Description В случае пополнения баланса ранее не упомянутого пользователя, он создается в БД
+// @ID          replenish-balance
+// @Param       balance body dto.BalanceChangeRequest true "User balance"
+// @Tags        Balance
+// @Success     200 {object} dto.BalanceChangeRequest
 // @Failure     400 {object} apperror.AppError
 // @Failure     418 {object} apperror.AppError
-// @Router      /balance/ [post]
-func (h *handler) UpdateBalance(w http.ResponseWriter, r *http.Request) error {
+// @Router      /balance/replenish/ [post]
+func (h *handler) ReplenishBalance(w http.ResponseWriter, r *http.Request) error {
+	return h.changeBalance(w, r, model.Replenish)
+}
+
+// ReduceBalance godoc
+// @Summary     Уменьшает баланс пользователя
+// @Description В случае уменьшения баланса ранее не упомянутого пользователя, он НЕ создается в БД (возвращается 404)
+// @ID          reduce-balance
+// @Param       balance body dto.BalanceChangeRequest true "User balance"
+// @Tags        Balance
+// @Success     200 {object} dto.BalanceChangeRequest
+// @Failure     400 {object} apperror.AppError
+// @Failure     418 {object} apperror.AppError
+// @Router      /balance/reduce/ [post]
+func (h *handler) ReduceBalance(w http.ResponseWriter, r *http.Request) error {
+	return h.changeBalance(w, r, model.Reduce)
+}
+
+func (h *handler) changeBalance(w http.ResponseWriter, r *http.Request, depositType model.DepositType) error {
 	h.logger.Tracef("url:%s host:%s", r.URL, r.Host)
 	w = utils.LogWriter{ResponseWriter: w}
 
-	var b dto.BalanceRequest
+	var b dto.BalanceChangeRequest
 	err := utils.DecodeJSON(w, r, &b)
 	if err != nil {
 		return toJSONDecodeError(err)
@@ -113,7 +134,7 @@ func (h *handler) UpdateBalance(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	newBalance, err := h.repo.ChangeUserBalance(context.Background(), b)
+	newBalance, err := h.service.ChangeUserBalance(context.Background(), b, depositType)
 	if err != nil {
 		return err
 	}

@@ -38,7 +38,7 @@ INSERT INTO history_reservation (user_id, order_id, service_id, cost, status)
 VALUES ('7a13445c-d6df-4111-abc0-abb12f610069', '34e16535-480c-43f8-95a9-b7a503499afb',
         '34e16535-480c-43f8-95a9-b7a503499afd', 100, 'cancel'),
        ('7a13445c-d6df-4111-abc0-abb12f610069', '34e16535-480c-43f8-95a9-b7a503499afb',
-        '34e16535-480c-43f8-95a9-b7a503499afd', 70, 'confirm');
+        '34e16535-480c-43f8-95a9-b7a503499afd', -70, 'confirm');
 
 
 
@@ -50,7 +50,7 @@ VALUES ('7a13445c-d6df-4111-abc0-abb12f610069', '34e16535-480c-43f8-95a9-b7a5034
 SELECT *
 FROM balance_history;
 
-SELECT service.name, SUM(history_reservation.cost) as "sum"
+SELECT service.name, SUM(-history_reservation.cost) as "sum"
 FROM history_reservation
          JOIN service USING (service_id)
 WHERE history_reservation.status = 'confirm'

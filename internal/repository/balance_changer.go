@@ -21,7 +21,7 @@ func NewBalanceChanger(c *pgxpool.Pool, l *logging.Logger) *BalanceChanger {
 	}
 }
 
-func (r *BalanceChanger) changeBalance(ctx context.Context, userID string, diff float64) (float64, error) {
+func (r *BalanceChanger) ChangeBalance(ctx context.Context, userID string, diff float64) (float64, error) {
 	q := `
 		UPDATE balance
     	SET balance= balance + $1

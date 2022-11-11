@@ -1,21 +1,14 @@
 package handler
 
 import (
-	"context"
 	"errors"
 	"github.com/go-playground/validator/v10"
 	"github.com/julienschmidt/httprouter"
 	"user_balance_service/internal/apperror"
-	"user_balance_service/internal/dto"
 )
 
 type Handler interface {
 	Register(router *httprouter.Router)
-}
-
-type BalanceRepository interface {
-	GetBalanceByUserID(ctx context.Context, id string) (float64, error)
-	ChangeUserBalance(ctx context.Context, b dto.BalanceRequest) (bm *dto.BalanceRequest, err error)
 }
 
 func toJSONDecodeError(err error) error {

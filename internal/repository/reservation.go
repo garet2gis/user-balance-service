@@ -2,12 +2,10 @@ package repository
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"user_balance_service/internal/apperror"
-	"user_balance_service/internal/dto"
 	"user_balance_service/internal/model"
 	"user_balance_service/pkg/logging"
 	"user_balance_service/pkg/postgresql"
@@ -17,9 +15,8 @@ import (
 type Status string
 
 const (
-	Confirm    Status = "confirm"
-	Cancel            = "cancel"
-	WasReserve        = "was_reserve"
+	Confirm Status = "confirm"
+	Cancel         = "cancel"
 )
 
 type ReservationRepository struct {
@@ -36,42 +33,7 @@ func NewReservationRepository(c *pgxpool.Pool, l *logging.Logger) *ReservationRe
 	}
 }
 
-func (r *ReservationRepository) getReservation(ctx context.Context, rm model.Reserve) (*dto.ReserveDB, error) {
-	q := `
-		SELECT reservation_id,
-			user_id,
-			order_id,
-			service_id,
-			cost,
-			created_at,
-			comment
-		FROM reservation
-		WHERE user_id = $1
-  			AND order_id = $2
-  			AND service_id = $3
-  			AND cost = $4
-	`
-
-	r.logger.Trace(fmt.Sprintf("SQL Query: %s", utils.FormatQuery(q)))
-
-	var m dto.ReserveDB
-
-	s := r.client.QueryRow(ctx, q, rm.UserID, rm.OrderID, rm.ServiceID, rm.Cost)
-	err := s.Scan(&m.ReservationID, &m.UserID, &m.OrderID, &m.ServiceID, &m.Cost, &m.CreatedAt, &m.Comment)
-
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, apperror.ErrNotFound
-		}
-
-		err = PgxErrorLog(err, r.logger)
-		return nil, err
-	}
-
-	return &m, nil
-}
-
-func (r *ReservationRepository) createReservation(ctx context.Context, rm model.Reserve) error {
+func (r *ReservationRepository) CreateReservation(ctx context.Context, rm model.Reserve) error {
 	q := `
 		INSERT INTO reservation (user_id, order_id, service_id, cost, comment)
 		VALUES ($1, $2, $3, $4, $5)
@@ -87,34 +49,13 @@ func (r *ReservationRepository) createReservation(ctx context.Context, rm model.
 	return nil
 }
 
-func (r *ReservationRepository) createPreviousReservation(ctx context.Context, rm dto.ReserveDB) error {
-	q := `
-		INSERT INTO history_reservation (user_id, order_id, service_id, cost, status, comment, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
-		`
-
-	r.logger.Trace(fmt.Sprintf("SQL Query: %s", utils.FormatQuery(q)))
-
-	_, err := r.client.Exec(ctx, q, rm.UserID, rm.OrderID, rm.ServiceID, -rm.Cost, WasReserve, rm.Comment, rm.CreatedAt)
-	if err != nil {
-		err = PgxErrorLog(err, r.logger)
-		return err
-	}
-
-	return nil
-}
-
-func (r *ReservationRepository) createCommitReservation(ctx context.Context, rm model.Reserve, status Status) error {
+func (r *ReservationRepository) CreateCommitReservation(ctx context.Context, rm model.Reserve, status Status) error {
 	q := `
 		INSERT INTO history_reservation (user_id, order_id, service_id, cost, status, comment)
 		VALUES ($1, $2, $3, $4, $5, $6)
 		`
 
 	r.logger.Trace(fmt.Sprintf("SQL Query: %s", utils.FormatQuery(q)))
-
-	if status == Confirm {
-		rm.Cost = 0
-	}
 
 	_, err := r.client.Exec(ctx, q, rm.UserID, rm.OrderID, rm.ServiceID, rm.Cost, status, rm.Comment)
 	if err != nil {
@@ -125,7 +66,7 @@ func (r *ReservationRepository) createCommitReservation(ctx context.Context, rm 
 	return nil
 }
 
-func (r *ReservationRepository) deleteReservation(ctx context.Context, rm model.Reserve) error {
+func (r *ReservationRepository) DeleteReservation(ctx context.Context, rm model.Reserve) error {
 	q := `
 		DELETE
 		FROM reservation
@@ -150,7 +91,10 @@ func (r *ReservationRepository) deleteReservation(ctx context.Context, rm model.
 	return nil
 }
 
+// service
+
 func (r *ReservationRepository) ReserveMoney(ctx context.Context, rm model.Reserve) error {
+
 	conn, err := r.client.Acquire(ctx)
 	if err != nil {
 		return err
@@ -177,12 +121,12 @@ func (r *ReservationRepository) ReserveMoney(ctx context.Context, rm model.Reser
 		}
 	}()
 
-	_, err = r.changeBalance(ctx, rm.UserID, -rm.Cost)
+	_, err = r.ChangeBalance(ctx, rm.UserID, -rm.Cost)
 	if err != nil {
 		return err
 	}
 
-	err = r.createReservation(ctx, rm)
+	err = r.CreateReservation(ctx, rm)
 	if err != nil {
 		return err
 	}
@@ -217,28 +161,22 @@ func (r *ReservationRepository) CommitReservation(ctx context.Context, rm model.
 		}
 	}()
 
-	reservation, err := r.getReservation(ctx, rm)
+	err = r.DeleteReservation(ctx, rm)
 	if err != nil {
 		return err
 	}
 
-	err = r.createPreviousReservation(ctx, *reservation)
-	if err != nil {
-		return err
+	if status == Confirm {
+		rm.Cost = -rm.Cost
 	}
 
-	err = r.deleteReservation(ctx, rm)
-	if err != nil {
-		return err
-	}
-
-	err = r.createCommitReservation(ctx, rm, status)
+	err = r.CreateCommitReservation(ctx, rm, status)
 	if err != nil {
 		return err
 	}
 
 	if status == Cancel {
-		_, err = r.changeBalance(ctx, rm.UserID, rm.Cost)
+		_, err = r.ChangeBalance(ctx, rm.UserID, rm.Cost)
 		if err != nil {
 			return err
 		}

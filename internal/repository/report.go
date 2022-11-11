@@ -24,7 +24,7 @@ func NewReportRepository(c *pgxpool.Pool, l *logging.Logger) *ReportRepository {
 
 func (r *ReportRepository) GetReport(ctx context.Context, year int, month int) ([]model.ReportRow, error) {
 	q := `
-		SELECT service.name, SUM(history_reservation.cost) as "sum"
+		SELECT service.name, SUM(-history_reservation.cost) as "sum"
 		FROM history_reservation
 		JOIN service USING (service_id)
 		WHERE history_reservation.status = 'confirm'

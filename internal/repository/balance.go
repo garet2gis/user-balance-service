@@ -31,7 +31,7 @@ func NewBalanceRepository(c *pgxpool.Pool, l *logging.Logger) *BalanceRepository
 	}
 }
 
-func (r *BalanceRepository) createBalance(ctx context.Context, id string) error {
+func (r *BalanceRepository) CreateBalance(ctx context.Context, id string) error {
 	q := `
 		INSERT INTO balance (user_id)
 		VALUES ($1)
@@ -47,7 +47,7 @@ func (r *BalanceRepository) createBalance(ctx context.Context, id string) error 
 	return nil
 }
 
-func (r *BalanceRepository) createHistoryDeposit(ctx context.Context, b dto.BalanceRequest) error {
+func (r *BalanceRepository) CreateHistoryDeposit(ctx context.Context, b dto.BalanceChangeRequest) error {
 	q := `
 		INSERT INTO history_deposit (user_id, amount, comment) 
 		VALUES ($1, $2, $3)
@@ -61,60 +61,6 @@ func (r *BalanceRepository) createHistoryDeposit(ctx context.Context, b dto.Bala
 	}
 
 	return nil
-}
-
-func (r *BalanceRepository) ChangeUserBalance(ctx context.Context, b dto.BalanceRequest) (bm *dto.BalanceRequest, err error) {
-	conn, err := r.client.Acquire(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer conn.Release()
-
-	tx, err := conn.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.Serializable})
-
-	if err != nil {
-		return nil, err
-	}
-
-	defer func() {
-		if err != nil {
-			errTx := tx.Rollback(ctx)
-			if errTx != nil {
-				r.logger.Errorf("transaction rollback failed")
-			}
-		} else {
-			errTx := tx.Commit(ctx)
-			if errTx != nil {
-				r.logger.Errorf("transaction commit failed")
-			}
-		}
-	}()
-
-	_, err = r.GetBalanceByUserID(ctx, b.UserID)
-	if err != nil {
-		if errors.Is(err, apperror.ErrNotFound) {
-			err = r.createBalance(ctx, b.UserID)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			return nil, err
-		}
-	}
-
-	newBalance, err := r.changeBalance(ctx, b.UserID, b.Amount)
-	if err != nil {
-		return nil, err
-	}
-
-	// записываем пополнение баланса в таблицу replenishment для отображения истории
-	err = r.createHistoryDeposit(ctx, b)
-	if err != nil {
-		return nil, err
-	}
-
-	b.Amount = newBalance
-	return &b, nil
 }
 
 func (r *BalanceRepository) GetBalanceByUserID(ctx context.Context, id string) (float64, error) {
