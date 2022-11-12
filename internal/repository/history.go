@@ -3,9 +3,11 @@ package repository
 import (
 	"context"
 	"fmt"
+	sq "github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"time"
+	"user_balance_service/internal/dto"
 	"user_balance_service/internal/model"
 	"user_balance_service/pkg/logging"
 	"user_balance_service/pkg/postgresql"
@@ -24,23 +26,28 @@ func NewHistoryRepository(c *pgxpool.Pool, l *logging.Logger) *HistoryRepository
 	}
 }
 
-func (r *HistoryRepository) GetUserBalanceHistory(ctx context.Context, userID string) ([]model.HistoryRow, error) {
-	q := `
-		SELECT balance_history.order_id,
-       		balance_history.service_name,
-       		balance_history.from_user_id,
-       		balance_history.to_user_id,
-       		balance_history.create_date,
-       		balance_history.amount,
-       		balance_history.transaction_type,
-       		balance_history.comment
-		FROM balance_history
-		WHERE balance_history.user_id = $1
-	`
+func (r *HistoryRepository) GetUserBalanceHistory(ctx context.Context, bh dto.BalanceHistory) ([]model.HistoryRow, error) {
+	qb := sq.Select("order_id, service_name, from_user_id, to_user_id, create_date, amount, transaction_type, comment").
+		From("balance_history").
+		Where(sq.Eq{"user_id": bh.UserID}).PlaceholderFormat(sq.Dollar).
+		OrderBy(fmt.Sprintf("%s %s", bh.OrderField, bh.OrderBy))
+
+	if bh.Limit > 0 {
+		qb = qb.Limit(uint64(bh.Limit))
+	}
+
+	if bh.Offset > 0 {
+		qb = qb.Offset(uint64(bh.Offset))
+	}
+
+	q, i, err := qb.ToSql()
+	if err != nil {
+		return nil, err
+	}
 
 	r.logger.Trace(fmt.Sprintf("SQL Query: %s", utils.FormatQuery(q)))
 
-	rows, err := r.client.Query(ctx, q, userID)
+	rows, err := r.client.Query(ctx, q, i...)
 	if err != nil {
 		err = PgxErrorLog(err, r.logger)
 		return nil, err

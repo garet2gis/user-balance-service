@@ -19,7 +19,7 @@ const (
 )
 
 type HistoryService interface {
-	GetHistory(ctx context.Context, id string) ([]model.HistoryRow, error)
+	GetHistory(ctx context.Context, bh dto.BalanceHistory) ([]model.HistoryRow, error)
 }
 
 type historyHandler struct {
@@ -43,7 +43,7 @@ func (h *historyHandler) Register(router *httprouter.Router) {
 // GetHistory godoc
 // @Summary Получение истории баланса пользователя
 // @ID      get-balance-history
-// @Param   user_id body dto.BalanceGetRequest true "User ID"
+// @Param   user_id body dto.BalanceHistory true "User ID"
 // @Tags    History
 // @Success 200 {array}  model.HistoryRow
 // @Failure 400 {object} apperror.AppError
@@ -54,19 +54,22 @@ func (h *historyHandler) GetHistory(w http.ResponseWriter, r *http.Request) erro
 	h.logger.Tracef("url:%s host:%s", r.URL, r.Host)
 	w = utils.LogWriter{ResponseWriter: w}
 
-	var uID dto.BalanceGetRequest
-	err := utils.DecodeJSON(w, r, &uID)
+	bh := dto.BalanceHistory{
+		OrderBy:    "asc",
+		OrderField: "create_date",
+	}
+	err := utils.DecodeJSON(w, r, &bh)
 	if err != nil {
 		return toJSONDecodeError(err)
 	}
 
-	err = h.validate.Struct(uID)
+	err = h.validate.Struct(bh)
 	err = validate(err)
 	if err != nil {
 		return err
 	}
 
-	b, err := h.service.GetHistory(context.Background(), uID.UserID)
+	b, err := h.service.GetHistory(context.Background(), bh)
 	if err != nil {
 		return err
 	}

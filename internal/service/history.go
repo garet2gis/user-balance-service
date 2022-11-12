@@ -2,13 +2,14 @@ package service
 
 import (
 	"context"
+	"user_balance_service/internal/dto"
 	"user_balance_service/internal/model"
 	"user_balance_service/pkg/logging"
 )
 
 type HistoryRepository interface {
 	TransactionRepository
-	GetUserBalanceHistory(ctx context.Context, userID string) ([]model.HistoryRow, error)
+	GetUserBalanceHistory(ctx context.Context, bh dto.BalanceHistory) ([]model.HistoryRow, error)
 }
 
 type HistoryService struct {
@@ -23,8 +24,8 @@ func NewHistoryService(r HistoryRepository, l *logging.Logger) *HistoryService {
 	}
 }
 
-func (hs *HistoryService) GetHistory(ctx context.Context, id string) ([]model.HistoryRow, error) {
-	history, err := hs.repo.GetUserBalanceHistory(ctx, id)
+func (hs *HistoryService) GetHistory(ctx context.Context, bh dto.BalanceHistory) ([]model.HistoryRow, error) {
+	history, err := hs.repo.GetUserBalanceHistory(ctx, bh)
 	if err != nil {
 		return nil, err
 	}
