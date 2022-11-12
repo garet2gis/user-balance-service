@@ -16,11 +16,13 @@ type TransactionRepository interface {
 type Service struct {
 	BalanceService
 	HistoryService
+	ReservationService
 }
 
 func NewService(r *repository.Repository, l *logging.Logger) *Service {
 	return &Service{
-		BalanceService: *NewBalanceService(r, l),
-		HistoryService: *NewHistoryService(r, l),
+		BalanceService:     *NewBalanceService(r, l),
+		HistoryService:     *NewHistoryService(r, l),
+		ReservationService: *NewReservationService(r, l),
 	}
 }

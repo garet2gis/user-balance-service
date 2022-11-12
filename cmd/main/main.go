@@ -65,6 +65,9 @@ func run(ctx context.Context) error {
 	historyHandler := handler.NewHistoryHandler(s, logger)
 	historyHandler.Register(router)
 
+	reservationHandler := handler.NewReservationHandler(s, logger)
+	reservationHandler.Register(router)
+
 	host := fmt.Sprintf("%s:%s", cfg.HTTP.Host, cfg.HTTP.Port)
 	swaggerInit(router, host)
 	startServer(ctx, router, host)

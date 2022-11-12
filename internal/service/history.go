@@ -8,7 +8,6 @@ import (
 )
 
 type HistoryRepository interface {
-	TransactionRepository
 	GetUserBalanceHistory(ctx context.Context, bh dto.BalanceHistory) ([]model.HistoryRow, error)
 }
 

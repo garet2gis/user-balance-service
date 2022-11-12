@@ -11,9 +11,9 @@ import (
 func insertTestDataInServicesTable(pool *pgxpool.Pool, logger *logging.Logger) {
 	q := `
 		INSERT INTO service (service_id, name)
-		VALUES ('34e16535-480c-43f8-95a9-b7a503499afd', 'Услуга 1'),
-				('bf13b3f8-503d-4e41-8f71-a541a20583e6', 'Услуга 2'),
-				('b55e4e01-5152-4cb0-95f2-ee27d5d2e9cd', 'Услуга 3');
+		VALUES ('34e16535-480c-43f8-95a9-b7a503499af0', 'Курьерская доставка'),
+				('34e16535-480c-43f8-95a9-b7a503499af1', 'Бронирование'),
+				('34e16535-480c-43f8-95a9-b7a503499af2', 'Дополнительная гарантия для товара');
 		`
 	logger.Trace(fmt.Sprintf("SQL Query: %s", utils.FormatQuery(q)))
 	_, err := pool.Exec(context.Background(), q)

@@ -2,7 +2,7 @@ package dto
 
 type BalanceChangeRequest struct {
 	// Баланс пользователя
-	Amount float64 `json:"amount" validate:"required"`
+	Amount float64 `json:"amount" validate:"gt=0,required"`
 	// UUID баланса пользователя
 	UserID string `json:"user_id"  example:"7a13445c-d6df-4111-abc0-abb12f610069" validate:"required,uuid"`
 	// Коментарий
@@ -15,7 +15,7 @@ type BalanceGetRequest struct {
 
 type TransferRequest struct {
 	// Списание
-	Amount float64 `json:"amount" validate:"required"`
+	Amount float64 `json:"amount" validate:"gt=0,required"`
 	// UUID баланса отправителя
 	UserIDFrom string `json:"user_id_from"  example:"7a13445c-d6df-4111-abc0-abb12f610069" validate:"required,uuid"`
 	// UUID баланса получателя

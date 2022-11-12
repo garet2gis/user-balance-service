@@ -12,7 +12,7 @@ type HistoryRow struct {
 	// Время создания
 	CreateAt string `json:"create_at"`
 	// Сумма
-	Amount int `json:"amount"`
+	Amount float64 `json:"amount"`
 	// Тип транзакции
 	TransactionType string `json:"transaction_type"`
 	// Комментарий

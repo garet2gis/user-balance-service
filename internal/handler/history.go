@@ -55,7 +55,7 @@ func (h *historyHandler) GetHistory(w http.ResponseWriter, r *http.Request) erro
 	w = utils.LogWriter{ResponseWriter: w}
 
 	bh := dto.BalanceHistory{
-		OrderBy:    "asc",
+		OrderBy:    "desc",
 		OrderField: "create_date",
 	}
 	err := utils.DecodeJSON(w, r, &bh)
