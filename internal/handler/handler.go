@@ -15,13 +15,17 @@ func toJSONDecodeError(err error) error {
 	return apperror.NewAppError(err, "JSON Decode Error", err.Error())
 }
 
+func toValidateError(err error) error {
+	return apperror.NewAppError(err, "Validate error", err.Error())
+}
+
 func validate(err error) error {
 	if err != nil {
 		var invalid *validator.InvalidValidationError
 		if errors.As(err, &invalid) {
 			return err
 		}
-		return apperror.NewAppError(err, "Validate error", err.Error())
+		return toValidateError(err)
 	}
 	return nil
 }

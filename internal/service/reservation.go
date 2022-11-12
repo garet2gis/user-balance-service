@@ -26,7 +26,7 @@ func NewReservationService(r ReservationRepository, l *logging.Logger) *Reservat
 	}
 }
 
-func (rs *ReservationService) ReserveMoney(ctx context.Context, rm model.Reservation) error {
+func (rs *ReservationService) ReserveMoney(ctx context.Context, rm model.Reservation) (err error) {
 	t, err := rs.repo.BeginTransaction(ctx)
 	if err != nil {
 		return err
@@ -52,7 +52,7 @@ func (rs *ReservationService) ReserveMoney(ctx context.Context, rm model.Reserva
 	return nil
 }
 
-func (rs *ReservationService) CommitReservation(ctx context.Context, rm model.Reservation, status model.ReservationStatus) error {
+func (rs *ReservationService) CommitReservation(ctx context.Context, rm model.Reservation, status model.ReservationStatus) (err error) {
 	t, err := rs.repo.BeginTransaction(ctx)
 	if err != nil {
 		return err

@@ -4,3 +4,5 @@
 .bin
 logs
 cmd/main/docs
+static/reports
+!static/reports/.gitkeep

@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 	"user_balance_service/internal/config"
+	"user_balance_service/internal/csv"
 	"user_balance_service/internal/handler"
 	"user_balance_service/internal/repository"
 	"user_balance_service/internal/service"
@@ -55,7 +56,9 @@ func run(ctx context.Context) error {
 	insertTestDataInServicesTable(client, logger)
 
 	r := repository.NewRepository(client, logger)
-	s := service.NewService(r, logger)
+	c := csv.NewBuilder(logger)
+
+	s := service.NewService(r, c, logger)
 
 	router := httprouter.New()
 
@@ -67,6 +70,12 @@ func run(ctx context.Context) error {
 
 	reservationHandler := handler.NewReservationHandler(s, logger)
 	reservationHandler.Register(router)
+
+	reportHandler := handler.NewReportHandler(s, logger)
+	reportHandler.Register(router)
+
+	// serve csv reports
+	router.ServeFiles("/static/reports/*filepath", http.Dir("static/reports"))
 
 	host := fmt.Sprintf("%s:%s", cfg.HTTP.Host, cfg.HTTP.Port)
 	swaggerInit(router, host)
