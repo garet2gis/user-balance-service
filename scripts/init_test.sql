@@ -34,14 +34,16 @@ CREATE TABLE reservation
 CREATE TYPE reservation_status AS ENUM ('confirm', 'cancel');
 CREATE TABLE history_reservation
 (
-    commit_reservation_id UUID PRIMARY KEY                         DEFAULT gen_random_uuid(),
-    user_id               UUID                            NOT NULL,
-    order_id              UUID                            NOT NULL,
-    service_id            UUID                            NOT NULL,
-    cost                  decimal(18, 2) CHECK (cost > 0) NOT NULL,
-    comment               TEXT                            NOT NULL DEFAULT '',
-    status                reservation_status              NOT NULL,
-    created_at            TIMESTAMP                       NOT NULL DEFAULT (now() AT TIME ZONE 'utc')
+    commit_reservation_id UUID PRIMARY KEY            DEFAULT gen_random_uuid(),
+    user_id               UUID               NOT NULL,
+    order_id              UUID               NOT NULL,
+    service_id            UUID               NOT NULL,
+    cost                  decimal(18, 2)
+        CHECK (cost <> 0 AND (cost < 0 OR status = 'cancel') AND (cost > 0 OR status = 'confirm'))
+                                             NOT NULL,
+    comment               TEXT               NOT NULL DEFAULT '',
+    status                reservation_status NOT NULL,
+    created_at            TIMESTAMP          NOT NULL DEFAULT (now() AT TIME ZONE 'utc')
 );
 
 
@@ -105,4 +107,50 @@ SELECT history_deposit.user_id,
 FROM history_deposit;
 
 INSERT INTO balance (user_id, balance)
-VALUES ('7a13445c-d6df-4111-abc0-abb12f610069', 500.34);
+VALUES ('7a13445c-d6df-4111-abc0-abb12f610069', 500.34),
+       ('7a13445c-d6df-4111-abc0-abb12f610068', 121),
+       ('7a13445c-d6df-4111-abc0-abb12f610062', 32.32),
+       ('7a13445c-d6df-4111-abc0-abb12f610063', 0),
+       ('7a13445c-d6df-4111-abc0-abb12f610064', 0),
+       ('7a13445c-d6df-4111-abc0-abb12f610065', 0);
+
+INSERT INTO service (service_id, name)
+VALUES ('34e16535-480c-43f8-95a9-b7a503499af0', 'Курьерская доставка'),
+       ('34e16535-480c-43f8-95a9-b7a503499af1', 'Бронирование'),
+       ('34e16535-480c-43f8-95a9-b7a503499af2', 'Дополнительная гарантия для товара');
+
+
+INSERT INTO reservation (user_id, order_id, service_id, cost, comment)
+VALUES ('7a13445c-d6df-4111-abc0-abb12f610068',
+        '983e8792-6736-41bd-9f1a-7c67f8501645',
+        '34e16535-480c-43f8-95a9-b7a503499af2',
+        50,
+        'reserve 50');
+
+INSERT INTO history_reservation (user_id, order_id, service_id, cost, status)
+VALUES ('7a13445c-d6df-4111-abc0-abb12f610065',
+        '983e8792-6736-41bd-9f1a-7c67f8501645',
+        '34e16535-480c-43f8-95a9-b7a503499af2',
+        -50.34,
+        'confirm'),
+       ('7a13445c-d6df-4111-abc0-abb12f610065',
+        '983e8792-6736-41bd-9f1a-7c67f8501645',
+        '34e16535-480c-43f8-95a9-b7a503499af2',
+        -20.40,
+        'confirm'),
+       ('7a13445c-d6df-4111-abc0-abb12f610065',
+        '983e8792-6736-41bd-9f1a-7c67f8501645',
+        '34e16535-480c-43f8-95a9-b7a503499af0',
+        -120.78,
+        'confirm'),
+       ('7a13445c-d6df-4111-abc0-abb12f610065',
+        '983e8792-6736-41bd-9f1a-7c67f8501645',
+        '34e16535-480c-43f8-95a9-b7a503499af1',
+        -57,
+        'confirm'),
+       ('7a13445c-d6df-4111-abc0-abb12f610065',
+        '983e8792-6736-41bd-9f1a-7c67f8501645',
+        '34e16535-480c-43f8-95a9-b7a503499af1',
+        7,
+        'cancel')
+;

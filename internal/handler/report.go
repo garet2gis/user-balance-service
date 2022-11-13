@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	report = "/report/"
+	Report = "/report/"
 )
 
 type ReportService interface {
@@ -37,7 +37,7 @@ func NewReportHandler(s ReportService, l *logging.Logger) Handler {
 }
 
 func (h *reportHandler) Register(router *httprouter.Router) {
-	router.HandlerFunc(http.MethodPost, report, apperror.Middleware(h.GetReport, h.logger))
+	router.HandlerFunc(http.MethodPost, Report, apperror.Middleware(h.GetReport, h.logger))
 }
 
 // GetReport godoc

@@ -16,10 +16,10 @@ import (
 )
 
 const (
-	basePath  = "/balance/"
-	replenish = "/replenish/"
-	reduce    = "/reduce/"
-	transfer  = "/transfer/"
+	BasePathBalance = "/balance/"
+	Replenish       = "/replenish/"
+	Reduce          = "/reduce/"
+	Transfer        = "/transfer/"
 )
 
 type BalanceService interface {
@@ -43,10 +43,10 @@ func NewBalanceHandler(s BalanceService, l *logging.Logger) Handler {
 }
 
 func (h *balanceHandler) Register(router *httprouter.Router) {
-	router.HandlerFunc(http.MethodGet, basePath, apperror.Middleware(h.GetBalance, h.logger))
-	router.HandlerFunc(http.MethodPost, path.Join(basePath, replenish), apperror.Middleware(h.ReplenishBalance, h.logger))
-	router.HandlerFunc(http.MethodPost, path.Join(basePath, reduce), apperror.Middleware(h.ReduceBalance, h.logger))
-	router.HandlerFunc(http.MethodPost, path.Join(basePath, transfer), apperror.Middleware(h.TransferBalance, h.logger))
+	router.HandlerFunc(http.MethodGet, BasePathBalance, apperror.Middleware(h.GetBalance, h.logger))
+	router.HandlerFunc(http.MethodPost, path.Join(BasePathBalance, Replenish), apperror.Middleware(h.ReplenishBalance, h.logger))
+	router.HandlerFunc(http.MethodPost, path.Join(BasePathBalance, Reduce), apperror.Middleware(h.ReduceBalance, h.logger))
+	router.HandlerFunc(http.MethodPost, path.Join(BasePathBalance, Transfer), apperror.Middleware(h.TransferBalance, h.logger))
 }
 
 // GetBalance godoc

@@ -26,6 +26,7 @@ COPY . .
 RUN chown -R postgres /testdir/cmd/main
 RUN chown -R postgres /testdir/internal
 RUN chown -R postgres /testdir/pkg
+RUN chown -R postgres /testdir/static/reports
 # RUN find /tmpdir -name *.go -exec chown -R postgres {} \;
 
 # create the entrypoint db script

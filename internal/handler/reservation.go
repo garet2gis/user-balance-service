@@ -13,10 +13,10 @@ import (
 )
 
 const (
-	basePathReservation = "/reservation/"
-	reserve             = "/reserve/"
-	confirm             = "/confirm/"
-	cancel              = "/cancel/"
+	BasePathReservation = "/reservation/"
+	Reserve             = "/reserve/"
+	Confirm             = "/confirm/"
+	Cancel              = "/cancel/"
 )
 
 type ReservationService interface {
@@ -39,9 +39,9 @@ func NewReservationHandler(s ReservationService, l *logging.Logger) Handler {
 }
 
 func (h *reservationHandler) Register(router *httprouter.Router) {
-	router.HandlerFunc(http.MethodPost, path.Join(basePathReservation, reserve), apperror.Middleware(h.Reserve, h.logger))
-	router.HandlerFunc(http.MethodPost, path.Join(basePathReservation, confirm), apperror.Middleware(h.ConfirmReservation, h.logger))
-	router.HandlerFunc(http.MethodPost, path.Join(basePathReservation, cancel), apperror.Middleware(h.CancelReservation, h.logger))
+	router.HandlerFunc(http.MethodPost, path.Join(BasePathReservation, Reserve), apperror.Middleware(h.Reserve, h.logger))
+	router.HandlerFunc(http.MethodPost, path.Join(BasePathReservation, Confirm), apperror.Middleware(h.ConfirmReservation, h.logger))
+	router.HandlerFunc(http.MethodPost, path.Join(BasePathReservation, Cancel), apperror.Middleware(h.CancelReservation, h.logger))
 }
 
 // Reserve godoc

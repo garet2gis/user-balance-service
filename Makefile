@@ -12,4 +12,7 @@ run-test:
 
 test: build-test run-test
 
-.PHONY: swagger build-test run-test
+see-cover:
+	go tool cover -html=cover.out
+
+.PHONY: swagger build-test run-test see-cover

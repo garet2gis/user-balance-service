@@ -34,14 +34,16 @@ CREATE TABLE reservation
 CREATE TYPE reservation_status AS ENUM ('confirm', 'cancel');
 CREATE TABLE history_reservation
 (
-    commit_reservation_id UUID PRIMARY KEY                         DEFAULT gen_random_uuid(),
-    user_id               UUID                            NOT NULL,
-    order_id              UUID                            NOT NULL,
-    service_id            UUID                            NOT NULL,
-    cost                  decimal(18, 2) CHECK (cost > 0) NOT NULL,
-    comment               TEXT                            NOT NULL DEFAULT '',
-    status                reservation_status              NOT NULL,
-    created_at            TIMESTAMP                       NOT NULL DEFAULT (now() AT TIME ZONE 'utc')
+    commit_reservation_id UUID PRIMARY KEY            DEFAULT gen_random_uuid(),
+    user_id               UUID               NOT NULL,
+    order_id              UUID               NOT NULL,
+    service_id            UUID               NOT NULL,
+    cost                  decimal(18, 2)
+        CHECK (cost <> 0 AND (cost < 0 OR status = 'cancel') AND (cost > 0 OR status = 'confirm'))
+                                             NOT NULL,
+    comment               TEXT               NOT NULL DEFAULT '',
+    status                reservation_status NOT NULL,
+    created_at            TIMESTAMP          NOT NULL DEFAULT (now() AT TIME ZONE 'utc')
 );
 
 

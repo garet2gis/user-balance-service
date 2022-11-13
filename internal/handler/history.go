@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	history = "/history/"
+	History = "/history/"
 )
 
 type HistoryService interface {
@@ -37,7 +37,7 @@ func NewHistoryHandler(s HistoryService, l *logging.Logger) Handler {
 }
 
 func (h *historyHandler) Register(router *httprouter.Router) {
-	router.HandlerFunc(http.MethodGet, history, apperror.Middleware(h.GetHistory, h.logger))
+	router.HandlerFunc(http.MethodGet, History, apperror.Middleware(h.GetHistory, h.logger))
 }
 
 // GetHistory godoc
