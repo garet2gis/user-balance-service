@@ -83,7 +83,7 @@ docker-compose up --build
 
 * POST <b>/report/</b>
 
-Отчет суммарной выручки по услугам
+Отчет суммарной выручки по услугам. Файл .csv пересоздается каждый раз только за текущий месяц
 
 ![report](https://github.com/garet2gis/user-balance-service/blob/master/documentation/images/report.png)
 
