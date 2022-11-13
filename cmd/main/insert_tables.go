@@ -3,9 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/garet2gis/user_balance_service/pkg/logging"
+	"github.com/garet2gis/user_balance_service/pkg/utils"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"user_balance_service/pkg/logging"
-	"user_balance_service/pkg/utils"
 )
 
 func insertTestDataInServicesTable(pool *pgxpool.Pool, logger *logging.Logger) {

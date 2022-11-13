@@ -4,14 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/garet2gis/user_balance_service/internal/apperror"
+	"github.com/garet2gis/user_balance_service/internal/dto"
+	"github.com/garet2gis/user_balance_service/pkg/logging"
+	"github.com/garet2gis/user_balance_service/pkg/utils"
 	"github.com/go-playground/validator/v10"
 	"github.com/julienschmidt/httprouter"
 	"net/http"
 	"time"
-	"user_balance_service/internal/apperror"
-	"user_balance_service/internal/dto"
-	"user_balance_service/pkg/logging"
-	"user_balance_service/pkg/utils"
 )
 
 const (

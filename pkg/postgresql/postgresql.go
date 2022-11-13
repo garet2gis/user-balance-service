@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/garet2gis/user_balance_service/internal/config"
+	"github.com/garet2gis/user_balance_service/pkg/logging"
 	"github.com/golang-migrate/migrate/v4"
 	pgxMigrate "github.com/golang-migrate/migrate/v4/database/pgx"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"time"
-	"user_balance_service/internal/config"
-	"user_balance_service/pkg/logging"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -26,7 +26,12 @@ type Client interface {
 }
 
 func NewClient(ctx context.Context, maxAttempts int, sc config.DBConfig, logger *logging.Logger) (pool *pgxpool.Pool, err error) {
-	dsn := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s", sc.DBUsername, sc.DBPassword, sc.DBHost, sc.DBPort, sc.DBName)
+	var dsn string
+	if sc.DBPassword == "" {
+		dsn = fmt.Sprintf("postgresql://%s@%s:%s/%s", sc.DBUsername, sc.DBHost, sc.DBPort, sc.DBName)
+	} else {
+		dsn = fmt.Sprintf("postgresql://%s:%s@%s:%s/%s", sc.DBUsername, sc.DBPassword, sc.DBHost, sc.DBPort, sc.DBName)
+	}
 	err = DoWithTries(func() error {
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()

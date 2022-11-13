@@ -2,14 +2,14 @@ package handler
 
 import (
 	"context"
+	"github.com/garet2gis/user_balance_service/internal/apperror"
+	"github.com/garet2gis/user_balance_service/internal/model"
+	"github.com/garet2gis/user_balance_service/pkg/logging"
+	"github.com/garet2gis/user_balance_service/pkg/utils"
 	"github.com/go-playground/validator/v10"
 	"github.com/julienschmidt/httprouter"
 	"net/http"
 	"path"
-	"user_balance_service/internal/apperror"
-	"user_balance_service/internal/model"
-	"user_balance_service/pkg/logging"
-	"user_balance_service/pkg/utils"
 )
 
 const (

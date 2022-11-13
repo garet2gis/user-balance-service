@@ -3,11 +3,11 @@ package repository
 import (
 	"errors"
 	"fmt"
+	"github.com/garet2gis/user_balance_service/internal/apperror"
+	"github.com/garet2gis/user_balance_service/pkg/logging"
+	"github.com/garet2gis/user_balance_service/pkg/postgresql"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"user_balance_service/internal/apperror"
-	"user_balance_service/pkg/logging"
-	"user_balance_service/pkg/postgresql"
 )
 
 type Repository struct {

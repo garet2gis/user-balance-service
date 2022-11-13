@@ -1,8 +1,8 @@
 package utils
 
 import (
+	"github.com/garet2gis/user_balance_service/pkg/logging"
 	"net/http"
-	"user_balance_service/pkg/logging"
 )
 
 type LogWriter struct {

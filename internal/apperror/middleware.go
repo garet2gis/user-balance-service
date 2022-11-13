@@ -2,9 +2,9 @@ package apperror
 
 import (
 	"errors"
+	"github.com/garet2gis/user_balance_service/pkg/logging"
+	"github.com/garet2gis/user_balance_service/pkg/utils"
 	"net/http"
-	"user_balance_service/pkg/logging"
-	"user_balance_service/pkg/utils"
 )
 
 type appHandler func(w http.ResponseWriter, r *http.Request) error

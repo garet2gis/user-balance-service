@@ -2,9 +2,9 @@ package handler
 
 import (
 	"errors"
+	"github.com/garet2gis/user_balance_service/internal/apperror"
 	"github.com/go-playground/validator/v10"
 	"github.com/julienschmidt/httprouter"
-	"user_balance_service/internal/apperror"
 )
 
 type Handler interface {

@@ -4,14 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/garet2gis/user_balance_service/internal/apperror"
+	"github.com/garet2gis/user_balance_service/internal/dto"
+	"github.com/garet2gis/user_balance_service/internal/model"
+	"github.com/garet2gis/user_balance_service/pkg/logging"
+	"github.com/garet2gis/user_balance_service/pkg/postgresql"
+	"github.com/garet2gis/user_balance_service/pkg/utils"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"user_balance_service/internal/apperror"
-	"user_balance_service/internal/dto"
-	"user_balance_service/internal/model"
-	"user_balance_service/pkg/logging"
-	"user_balance_service/pkg/postgresql"
-	"user_balance_service/pkg/utils"
 )
 
 var (

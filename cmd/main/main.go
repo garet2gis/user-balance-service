@@ -3,6 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/garet2gis/user_balance_service/internal/config"
+	"github.com/garet2gis/user_balance_service/internal/csv"
+	"github.com/garet2gis/user_balance_service/internal/handler"
+	"github.com/garet2gis/user_balance_service/internal/repository"
+	"github.com/garet2gis/user_balance_service/internal/service"
+	"github.com/garet2gis/user_balance_service/pkg/logging"
+	"github.com/garet2gis/user_balance_service/pkg/postgresql"
 	"github.com/julienschmidt/httprouter"
 	httpSwagger "github.com/swaggo/http-swagger"
 	"net"
@@ -10,15 +17,8 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
-	"user_balance_service/internal/config"
-	"user_balance_service/internal/csv"
-	"user_balance_service/internal/handler"
-	"user_balance_service/internal/repository"
-	"user_balance_service/internal/service"
-	"user_balance_service/pkg/logging"
-	"user_balance_service/pkg/postgresql"
 
-	"user_balance_service/cmd/main/docs"
+	"github.com/garet2gis/user_balance_service/cmd/main/docs"
 )
 
 // @title   API User Balance Service

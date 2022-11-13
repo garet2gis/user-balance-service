@@ -4,9 +4,9 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
+	"github.com/garet2gis/user_balance_service/internal/model"
+	"github.com/garet2gis/user_balance_service/pkg/logging"
 	"os"
-	"user_balance_service/internal/model"
-	"user_balance_service/pkg/logging"
 )
 
 type Builder struct {

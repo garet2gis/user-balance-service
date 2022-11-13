@@ -1,8 +1,8 @@
 package config
 
 import (
+	"github.com/garet2gis/user_balance_service/pkg/logging"
 	"sync"
-	"user_balance_service/pkg/logging"
 
 	"github.com/ilyakaznacheev/cleanenv"
 )

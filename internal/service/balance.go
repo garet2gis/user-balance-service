@@ -2,9 +2,9 @@ package service
 
 import (
 	"context"
-	"user_balance_service/internal/dto"
-	"user_balance_service/internal/model"
-	"user_balance_service/pkg/logging"
+	"github.com/garet2gis/user_balance_service/internal/dto"
+	"github.com/garet2gis/user_balance_service/internal/model"
+	"github.com/garet2gis/user_balance_service/pkg/logging"
 )
 
 type BalanceRepository interface {

@@ -1,9 +1,9 @@
 package service
 
 import (
-	"user_balance_service/internal/csv"
-	"user_balance_service/internal/repository"
-	"user_balance_service/pkg/logging"
+	"github.com/garet2gis/user_balance_service/internal/csv"
+	"github.com/garet2gis/user_balance_service/internal/repository"
+	"github.com/garet2gis/user_balance_service/pkg/logging"
 )
 
 type Service struct {

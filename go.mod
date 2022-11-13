@@ -1,4 +1,4 @@
-module user_balance_service
+module github.com/garet2gis/user_balance_service
 
 go 1.18
 
