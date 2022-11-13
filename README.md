@@ -24,8 +24,7 @@ docker-compose up --build
 
 Более подробно API документацию можно посмотреть в Swagger по маршруту <b>/swagger</b>
 
-[//]: # (![swagger]&#40;https://github.com/garet2gis/user-balance-service/master/documentation/swagger.png&#41;)
-![swagger](https://github.com/garet2gis/user-balance-service/master/documentation/images/swagger.png)
+![swagger](https://github.com/garet2gis/user-balance-service/blob/master/documentation/images/swagger.png)
 
 Ниже будут приведены основные запросы в интерфейсе Postman-а:
 
@@ -33,45 +32,45 @@ docker-compose up --build
 
 Получение баланса пользователя
 
-![balance_get](https://github.com/garet2gis/user-balance-service/master/documentation/images/balance_get.png)
+![balance_get](https://github.com/garet2gis/user-balance-service/blob/master/documentation/images/balance_get.png)
 
 * POST <b>/balance/replenish/</b>
 
 Пополнение баланса пользователя (создает новый баланс, если раньше не существовал)
 
-![balance_replenish](https://github.com/garet2gis/user-balance-service/master/documentation/images/balance_replenish.png)
+![balance_replenish](https://github.com/garet2gis/user-balance-service/blob/master/documentation/images/balance_replenish.png)
 
 * POST <b>/balance/reduce/</b>
 
 Уменьшение баланса пользователя
 
-![balance_reduce](https://github.com/garet2gis/user-balance-service/master/documentation/images/balance_reduce.png)
+![balance_reduce](https://github.com/garet2gis/user-balance-service/blob/master/documentation/images/balance_reduce.png)
 
 
 * POST <b>/balance/transfer/</b>
 
 Перевод денег с одного баланса на другой
 
-![balance_transfer](https://github.com/garet2gis/user-balance-service/master/documentation/images/balance_transfer.png)
+![balance_transfer](https://github.com/garet2gis/user-balance-service/blob/master/documentation/images/balance_transfer.png)
 
 
 * POST <b>/reservation/reserve/</b>
 
 Резервирование денег на услугу
 
-![reservation_reserve](https://github.com/garet2gis/user-balance-service/master/documentation/images/reservation_reserve.png)
+![reservation_reserve](https://github.com/garet2gis/user-balance-service/blob/master/documentation/images/reservation_reserve.png)
 
 * POST <b>/reservation/cancel/</b>
 
 Разрезервирование денег
 
-![reservation_cancel](https://github.com/garet2gis/user-balance-service/master/documentation/images/reservation_cancel.png)
+![reservation_cancel](https://github.com/garet2gis/user-balance-service/blob/master/documentation/images/reservation_cancel.png)
 
 * POST <b>/reservation/confirm/</b>
 
 Подтверждение списывание денег за услугу
 
-![reservation_confirm](https://github.com/garet2gis/user-balance-service/master/documentation/images/reservation_confirm.png)
+![reservation_confirm](https://github.com/garet2gis/user-balance-service/blob/master/documentation/images/reservation_confirm.png)
 
 
 * GET <b>/history/</b>
@@ -79,22 +78,22 @@ docker-compose up --build
 История изменения баланса пользователя, есть необязательная пагинация (limit, offset), а также предусмотрена сортировка 
 по сумме и дате (по умолчанию по дате в desc)
 
-![history](https://github.com/garet2gis/user-balance-service/master/documentation/images/history.png)
+![history](https://github.com/garet2gis/user-balance-service/blob/master/documentation/images/history.png)
 
 
 * POST <b>/report/</b>
 
 Отчет суммарной выручки по услугам
 
-![report](https://github.com/garet2gis/user-balance-service/master/documentation/images/report.png)
+![report](https://github.com/garet2gis/user-balance-service/blob/master/documentation/images/report.png)
 
 Пример скачанного отчета:
 
-![report-example](https://github.com/garet2gis/user-balance-service/master/documentation/images/csv.png)
+![report-example](https://github.com/garet2gis/user-balance-service/blob/master/documentation/images/csv.png)
 
 ## БД
 
-[Файл со схемой данных](https://github.com/garet2gis/user-balance-service/master/migrations/20221108113104_create_db_schema.up.sql)
+[Файл со схемой данных](https://github.com/garet2gis/user-balance-service/blob/master/migrations/20221108113104_create_db_schema.up.sql)
 
 Также стоит отметить, что все запросы с изменением баланса были выполнены в транзакциях
 с уровнем изоляции Serializable
