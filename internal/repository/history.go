@@ -6,7 +6,6 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"time"
 	"user_balance_service/internal/dto"
 	"user_balance_service/internal/model"
 	"user_balance_service/pkg/logging"
@@ -68,8 +67,7 @@ func (r *HistoryRepository) GetUserBalanceHistory(ctx context.Context, bh dto.Ba
 			return nil, err
 		}
 
-		// перевод к московскому времени
-		row.CreateAt = createAt.Time.Add(time.Hour * 3).String()
+		row.CreateAt = createAt.Time.String()
 		if orderID.Valid {
 			row.OrderID = utils.EncodeUUID(orderID)
 		}

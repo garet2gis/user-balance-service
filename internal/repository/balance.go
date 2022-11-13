@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"user_balance_service/internal/apperror"
 	"user_balance_service/internal/dto"
+	"user_balance_service/internal/model"
 	"user_balance_service/pkg/logging"
 	"user_balance_service/pkg/postgresql"
 	"user_balance_service/pkg/utils"
@@ -18,6 +19,7 @@ var (
 )
 
 type BalanceRepository struct {
+	TransactionHelper
 	BalanceChanger
 	client postgresql.Client
 	logger *logging.Logger
@@ -25,13 +27,14 @@ type BalanceRepository struct {
 
 func NewBalanceRepository(c *pgxpool.Pool, l *logging.Logger) *BalanceRepository {
 	return &BalanceRepository{
-		BalanceChanger: *NewBalanceChanger(c, l),
-		client:         c,
-		logger:         l,
+		TransactionHelper: *NewTransactionHelper(c, l),
+		BalanceChanger:    *NewBalanceChanger(c, l),
+		client:            c,
+		logger:            l,
 	}
 }
 
-func (r *BalanceRepository) CreateBalance(ctx context.Context, id string) error {
+func (r *BalanceRepository) createBalance(ctx context.Context, tx pgx.Tx, id string) error {
 	q := `
 		INSERT INTO balance (user_id)
 		VALUES ($1)
@@ -39,7 +42,7 @@ func (r *BalanceRepository) CreateBalance(ctx context.Context, id string) error 
 
 	r.logger.Trace(fmt.Sprintf("SQL Query: %s", utils.FormatQuery(q)))
 
-	_, err := r.client.Exec(ctx, q, id)
+	_, err := tx.Exec(ctx, q, id)
 	if err != nil {
 		err = PgxErrorLog(err, r.logger)
 		return err
@@ -47,14 +50,14 @@ func (r *BalanceRepository) CreateBalance(ctx context.Context, id string) error 
 	return nil
 }
 
-func (r *BalanceRepository) CreateHistoryDeposit(ctx context.Context, b dto.BalanceChangeRequest) error {
+func (r *BalanceRepository) createHistoryDeposit(ctx context.Context, tx pgx.Tx, b dto.BalanceChangeRequest) error {
 	q := `
 		INSERT INTO history_deposit (user_id, amount, comment) 
 		VALUES ($1, $2, $3)
 		`
 	r.logger.Trace(fmt.Sprintf("SQL Query: %s", utils.FormatQuery(q)))
 
-	_, err := r.client.Exec(ctx, q, b.UserID, b.Amount, b.Comment)
+	_, err := tx.Exec(ctx, q, b.UserID, b.Amount, b.Comment)
 	if err != nil {
 		err = PgxErrorLog(err, r.logger)
 		return err
@@ -63,7 +66,7 @@ func (r *BalanceRepository) CreateHistoryDeposit(ctx context.Context, b dto.Bala
 	return nil
 }
 
-func (r *BalanceRepository) CreateHistoryTransfer(ctx context.Context, b dto.TransferRequest) error {
+func (r *BalanceRepository) createHistoryTransfer(ctx context.Context, tx pgx.Tx, b dto.TransferRequest) error {
 
 	q := `
 		INSERT INTO history_deposit (user_id, to_user_id, amount, comment) 
@@ -71,7 +74,7 @@ func (r *BalanceRepository) CreateHistoryTransfer(ctx context.Context, b dto.Tra
 		`
 	r.logger.Trace(fmt.Sprintf("SQL Query: %s", utils.FormatQuery(q)))
 
-	_, err := r.client.Exec(ctx, q, b.UserIDFrom, b.UserIDTo, -b.Amount, b.Comment)
+	_, err := tx.Exec(ctx, q, b.UserIDFrom, b.UserIDTo, -b.Amount, b.Comment)
 	if err != nil {
 		err = PgxErrorLog(err, r.logger)
 		return err
@@ -83,7 +86,7 @@ func (r *BalanceRepository) CreateHistoryTransfer(ctx context.Context, b dto.Tra
 		`
 	r.logger.Trace(fmt.Sprintf("SQL Query: %s", utils.FormatQuery(q)))
 
-	_, err = r.client.Exec(ctx, q, b.UserIDTo, b.UserIDFrom, b.Amount, b.Comment)
+	_, err = tx.Exec(ctx, q, b.UserIDTo, b.UserIDFrom, b.Amount, b.Comment)
 	if err != nil {
 		err = PgxErrorLog(err, r.logger)
 		return err
@@ -93,18 +96,31 @@ func (r *BalanceRepository) CreateHistoryTransfer(ctx context.Context, b dto.Tra
 }
 
 func (r *BalanceRepository) GetBalanceByUserID(ctx context.Context, id string) (float64, error) {
+	var fakeTx pgx.Tx
+	return r.getBalanceByUserID(ctx, fakeTx, id)
+}
+
+func (r *BalanceRepository) getBalanceByUserID(ctx context.Context, tx pgx.Tx, id string) (float64, error) {
 	q := `
 		SELECT 
 		       balance.balance
 		FROM balance
 		WHERE user_id = $1
 	`
+	r.logger.Infof("is not transaction: %t", tx == nil)
 
 	r.logger.Trace(fmt.Sprintf("SQL Query: %s", utils.FormatQuery(q)))
 
+	var err error
 	var balance float64
 
-	if err := r.client.QueryRow(ctx, q, id).Scan(&balance); err != nil {
+	if tx == nil {
+		err = r.client.QueryRow(ctx, q, id).Scan(&balance)
+	} else {
+		err = tx.QueryRow(ctx, q, id).Scan(&balance)
+	}
+
+	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return 0, apperror.ErrNotFound
 		}
@@ -114,4 +130,79 @@ func (r *BalanceRepository) GetBalanceByUserID(ctx context.Context, id string) (
 	}
 
 	return balance, nil
+}
+
+func (r *BalanceRepository) ChangeUserBalance(ctx context.Context, b dto.BalanceChangeRequest, depositType model.DepositType) (bm *dto.BalanceChangeRequest, err error) {
+	t, err := r.beginTransaction(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if err != nil {
+			r.rollbackTransaction(ctx, t)
+		} else {
+			r.commitTransaction(ctx, t)
+		}
+	}()
+
+	_, err = r.getBalanceByUserID(ctx, t, b.UserID)
+	if err != nil {
+		if errors.Is(err, apperror.ErrNotFound) && depositType == model.Replenish {
+			err = r.createBalance(ctx, t, b.UserID)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
+	}
+
+	if depositType == model.Reduce {
+		b.Amount = -b.Amount
+	}
+
+	newBalance, err := r.changeBalance(ctx, t, b.UserID, b.Amount)
+	if err != nil {
+		return nil, err
+	}
+
+	// записываем пополнение баланса в таблицу для отображения истории
+	err = r.createHistoryDeposit(ctx, t, b)
+	if err != nil {
+		return nil, err
+	}
+
+	b.Amount = newBalance
+	return &b, nil
+}
+
+func (r *BalanceRepository) TransferMoney(ctx context.Context, transfer dto.TransferRequest) (err error) {
+	t, err := r.beginTransaction(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			r.rollbackTransaction(ctx, t)
+		} else {
+			r.commitTransaction(ctx, t)
+		}
+	}()
+
+	_, err = r.changeBalance(ctx, t, transfer.UserIDFrom, -transfer.Amount)
+	if err != nil {
+		return err
+	}
+
+	_, err = r.changeBalance(ctx, t, transfer.UserIDTo, transfer.Amount)
+	if err != nil {
+		return err
+	}
+
+	err = r.createHistoryTransfer(ctx, t, transfer)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

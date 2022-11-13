@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"user_balance_service/pkg/logging"
 	"user_balance_service/pkg/postgresql"
@@ -21,7 +22,7 @@ func NewBalanceChanger(c *pgxpool.Pool, l *logging.Logger) *BalanceChanger {
 	}
 }
 
-func (r *BalanceChanger) ChangeBalance(ctx context.Context, userID string, diff float64) (float64, error) {
+func (r *BalanceChanger) changeBalance(ctx context.Context, tx pgx.Tx, userID string, diff float64) (float64, error) {
 	q := `
 		UPDATE balance
     	SET balance= balance + $1
@@ -32,7 +33,7 @@ func (r *BalanceChanger) ChangeBalance(ctx context.Context, userID string, diff 
 
 	var newBalance float64
 
-	if err := r.client.QueryRow(ctx, q, diff, userID).Scan(&newBalance); err != nil {
+	if err := tx.QueryRow(ctx, q, diff, userID).Scan(&newBalance); err != nil {
 		err = PgxErrorLog(err, r.logger)
 
 		return 0, err

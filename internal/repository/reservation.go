@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"user_balance_service/internal/apperror"
 	"user_balance_service/internal/model"
@@ -12,6 +13,7 @@ import (
 )
 
 type ReservationRepository struct {
+	TransactionHelper
 	BalanceChanger
 	client postgresql.Client
 	logger *logging.Logger
@@ -19,20 +21,21 @@ type ReservationRepository struct {
 
 func NewReservationRepository(c *pgxpool.Pool, l *logging.Logger) *ReservationRepository {
 	return &ReservationRepository{
-		BalanceChanger: *NewBalanceChanger(c, l),
-		client:         c,
-		logger:         l,
+		TransactionHelper: *NewTransactionHelper(c, l),
+		BalanceChanger:    *NewBalanceChanger(c, l),
+		client:            c,
+		logger:            l,
 	}
 }
 
-func (r *ReservationRepository) CreateReservation(ctx context.Context, rm model.Reservation) error {
+func (r *ReservationRepository) createReservation(ctx context.Context, tx pgx.Tx, rm model.Reservation) error {
 	q := `
 		INSERT INTO reservation (user_id, order_id, service_id, cost, comment)
 		VALUES ($1, $2, $3, $4, $5)
 		`
 	r.logger.Trace(fmt.Sprintf("SQL Query: %s", utils.FormatQuery(q)))
 
-	_, err := r.client.Exec(ctx, q, rm.UserID, rm.OrderID, rm.ServiceID, rm.Cost, rm.Comment)
+	_, err := tx.Exec(ctx, q, rm.UserID, rm.OrderID, rm.ServiceID, rm.Cost, rm.Comment)
 	if err != nil {
 		err = PgxErrorLog(err, r.logger)
 		return err
@@ -41,7 +44,7 @@ func (r *ReservationRepository) CreateReservation(ctx context.Context, rm model.
 	return nil
 }
 
-func (r *ReservationRepository) CreateCommitReservation(ctx context.Context, rm model.Reservation, status model.ReservationStatus) error {
+func (r *ReservationRepository) createCommitReservation(ctx context.Context, tx pgx.Tx, rm model.Reservation, status model.ReservationStatus) error {
 	q := `
 		INSERT INTO history_reservation (user_id, order_id, service_id, cost, status, comment)
 		VALUES ($1, $2, $3, $4, $5, $6)
@@ -49,7 +52,7 @@ func (r *ReservationRepository) CreateCommitReservation(ctx context.Context, rm 
 
 	r.logger.Trace(fmt.Sprintf("SQL Query: %s", utils.FormatQuery(q)))
 
-	_, err := r.client.Exec(ctx, q, rm.UserID, rm.OrderID, rm.ServiceID, rm.Cost, status, rm.Comment)
+	_, err := tx.Exec(ctx, q, rm.UserID, rm.OrderID, rm.ServiceID, rm.Cost, status, rm.Comment)
 	if err != nil {
 		err = PgxErrorLog(err, r.logger)
 		return err
@@ -58,7 +61,7 @@ func (r *ReservationRepository) CreateCommitReservation(ctx context.Context, rm 
 	return nil
 }
 
-func (r *ReservationRepository) DeleteReservation(ctx context.Context, rm model.Reservation) error {
+func (r *ReservationRepository) deleteReservation(ctx context.Context, tx pgx.Tx, rm model.Reservation) error {
 	q := `
 		DELETE
 		FROM reservation
@@ -70,7 +73,7 @@ func (r *ReservationRepository) DeleteReservation(ctx context.Context, rm model.
 
 	r.logger.Trace(fmt.Sprintf("SQL Query: %s", utils.FormatQuery(q)))
 
-	commandTag, err := r.client.Exec(ctx, q, rm.UserID, rm.OrderID, rm.ServiceID, rm.Cost)
+	commandTag, err := tx.Exec(ctx, q, rm.UserID, rm.OrderID, rm.ServiceID, rm.Cost)
 	if err != nil {
 		err = PgxErrorLog(err, r.logger)
 		return err
@@ -78,6 +81,69 @@ func (r *ReservationRepository) DeleteReservation(ctx context.Context, rm model.
 
 	if commandTag.RowsAffected() != 1 {
 		return apperror.ErrNotFound
+	}
+
+	return nil
+}
+
+func (r *ReservationRepository) ReserveMoney(ctx context.Context, rm model.Reservation) (err error) {
+	t, err := r.beginTransaction(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			r.rollbackTransaction(ctx, t)
+		} else {
+			r.commitTransaction(ctx, t)
+		}
+	}()
+
+	_, err = r.changeBalance(ctx, t, rm.UserID, -rm.Cost)
+	if err != nil {
+		return err
+	}
+
+	err = r.createReservation(ctx, t, rm)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *ReservationRepository) CommitReservation(ctx context.Context, rm model.Reservation, status model.ReservationStatus) (err error) {
+	t, err := r.beginTransaction(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			r.rollbackTransaction(ctx, t)
+		} else {
+			r.commitTransaction(ctx, t)
+		}
+	}()
+
+	err = r.deleteReservation(ctx, t, rm)
+	if err != nil {
+		return err
+	}
+
+	if status == model.Confirm {
+		rm.Cost = -rm.Cost
+	}
+
+	err = r.createCommitReservation(ctx, t, rm, status)
+	if err != nil {
+		return err
+	}
+
+	if status == model.Cancel {
+		_, err = r.changeBalance(ctx, t, rm.UserID, rm.Cost)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
