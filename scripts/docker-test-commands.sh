@@ -21,9 +21,13 @@ $POSTGRES <<EOSQL
 CREATE DATABASE "${DBNAME}" OWNER ${POSTGRESUSER};
 EOSQL
 echo "Initializing database..."
-psql -d ${DBNAME} -a -U${POSTGRESUSER} -f ./scripts/init_test.sql &
-SQL_PID=$!
-wait $SQL_PID
+migrate -path ./migrations -database "pgx://${POSTGRESUSER}@${DBHOST}:5432/${DBNAME}?sslmode=disable" -verbose up &
+SQL_PID_1=$!
+wait $SQL_PID_1
+echo "Initializing data..."
+psql -d ${DBNAME} -a -U${POSTGRESUSER} -f ./scripts/fill_data.sql &
+SQL_PID_2=$!
+wait $SQL_PID_2
 echo "Finished initializing database"
 echo "Running Go Tests"
 go test -v ./... -coverpkg ./... -coverprofile cover.out &

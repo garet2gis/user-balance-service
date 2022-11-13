@@ -1,5 +1,6 @@
 FROM postgres:15-alpine
 RUN apk add --no-cache git make musl-dev go busybox-suid build-base
+
 # Set environment variables for the database
 ENV POSTGRESUSER postgres
 ENV DBUSER postgres
@@ -14,6 +15,8 @@ ENV GOROOT /usr/lib/go
 ENV GOPATH /go
 ENV PATH /go/bin:$PATH
 RUN mkdir -p ${GOPATH}/src ${GOPATH}/bin
+RUN go install -tags 'pgx' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+
 # Give postgres user full access to Go path, needed to install dependencies
 RUN chown -R postgres /go
 # Create a workdir, this is needed to properly install Go dependencies
