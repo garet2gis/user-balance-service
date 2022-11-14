@@ -15,6 +15,5 @@ WORKDIR /root/
 COPY --from=builder /user_balance_service/.bin/main .
 COPY --from=builder /user_balance_service/.env .
 COPY --from=builder /user_balance_service/migrations ./migrations
-COPY --from=builder /user_balance_service/static/reports ./static/reports
 
 ENTRYPOINT ["./main"]

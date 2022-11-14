@@ -6,5 +6,3 @@
 logs
 cmd/main/docs
 !cmd/main/docs/docs.go
-static/reports
-!static/reports/.gitkeep
